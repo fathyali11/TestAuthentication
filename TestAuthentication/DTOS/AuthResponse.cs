@@ -9,4 +9,8 @@ public class AuthResponse
     public DateTime ExpiresAt { get; set; }
     public string RefreshToken { get; set; } = string.Empty;
     public DateTime RefreshTokenExpiresAt { get; set; }
+
+
+    public bool IsSuccess { get; set; }
+    public string Message { get; set; } = string.Empty;
 }
