@@ -6,6 +6,7 @@ using System.Text;
 using TestAuthentication.Constants;
 using TestAuthentication.Data;
 using TestAuthentication.Models;
+using TestAuthentication.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,6 +48,10 @@ builder.Services.AddAuthentication(options =>
         };
 
     } ) ;
+
+
+builder.Services.AddScoped<IAuthServices, AuthServices>();
+
 
 var app = builder.Build();
 
