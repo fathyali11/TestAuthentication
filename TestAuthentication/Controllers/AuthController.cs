@@ -16,4 +16,12 @@ public class AuthController(IAuthServices _authServices) : ControllerBase
             return BadRequest(result.Message);
         return Ok(result);
     }
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken = default)
+    {
+        var result = await _authServices.LoginAsync(request, cancellationToken);
+        if (!result.IsSuccess)
+            return BadRequest(result.Message);
+        return Ok(result);
+    }
 }

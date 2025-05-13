@@ -53,9 +53,37 @@ public class AuthServices(IOptions<JwtConfig> options,UserManager<ApplicationUse
 
 
     }
-    public Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
+    public async Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var user = await _userManager.FindByNameAsync(request.Username);
+        if(user is null)
+            return new AuthResponse
+            {
+                IsSuccess = false,
+                Message = "User not exist"
+            };
+
+        var isPasswordValid = await _userManager.CheckPasswordAsync(user, request.Password);
+        if (!isPasswordValid)
+            return new AuthResponse
+            {
+                IsSuccess = false,
+                Message = "Invalid password"
+            };
+
+        var generateTokenResult = GenerateToken(user);
+        return new AuthResponse
+        {
+            Id = user.Id,
+            Username = user.UserName!,
+            Email = user.Email!,
+            Token = generateTokenResult.Item1,
+            ExpiresAt = generateTokenResult.Item2,
+            RefreshToken = GenerateRefreshToken(),
+            RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(_jwtConfig.RefreshExpireTime),
+            Message = "User logged in successfully",
+            IsSuccess = true
+        };
     }
 
 
