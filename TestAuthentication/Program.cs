@@ -7,7 +7,8 @@ using System.Text;
 using TestAuthentication.Constants;
 using TestAuthentication.Data;
 using TestAuthentication.Models;
-using TestAuthentication.Services;
+using TestAuthentication.Services.AuthService;
+using TestAuthentication.Services.EmailServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -80,8 +81,13 @@ builder.Services.AddAuthentication(options =>
 
     } ) ;
 
-
+builder.Services.AddOptions<EmailSettings>()
+    .Bind(builder.Configuration.GetSection(nameof(EmailSettings)))
+    .ValidateOnStart();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuthServices, AuthServices>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+
 
 
 var app = builder.Build();
