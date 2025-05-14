@@ -1,4 +1,5 @@
-﻿using TestAuthentication.DTOS;
+﻿using TestAuthentication.DTOS.Requests;
+using TestAuthentication.DTOS.Responses;
 
 namespace TestAuthentication.Services.AuthService;
 

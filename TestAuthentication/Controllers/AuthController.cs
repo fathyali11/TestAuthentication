@@ -1,6 +1,6 @@
 ﻿
 using Microsoft.AspNetCore.Mvc;
-using TestAuthentication.DTOS;
+using TestAuthentication.DTOS.Requests;
 using TestAuthentication.Services.AuthService;
 
 namespace TestAuthentication.Controllers;

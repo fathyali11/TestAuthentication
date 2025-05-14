@@ -1,4 +1,4 @@
-﻿namespace TestAuthentication.DTOS;
+﻿namespace TestAuthentication.DTOS.Responses;
 
 public class AuthResponse
 {

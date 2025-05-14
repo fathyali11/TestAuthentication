@@ -1,4 +1,4 @@
-﻿namespace TestAuthentication.DTOS;
+﻿namespace TestAuthentication.DTOS.Requests;
 
 public record LoginRequest(
     string Username,

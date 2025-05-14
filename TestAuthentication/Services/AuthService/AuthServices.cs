@@ -6,7 +6,8 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using TestAuthentication.Constants;
-using TestAuthentication.DTOS;
+using TestAuthentication.DTOS.Requests;
+using TestAuthentication.DTOS.Responses;
 using TestAuthentication.Models;
 using TestAuthentication.Services.EmailServices;
 
