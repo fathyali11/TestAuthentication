@@ -2,5 +2,5 @@
 
 public record Error(string Code,string Description,int ?StatusCode)
 {
-    public readonly Error None = new Error(string.Empty, string.Empty, null);
+    public static readonly Error None = new Error(string.Empty, string.Empty, null);
 }

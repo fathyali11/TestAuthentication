@@ -1,11 +1,17 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Mapster;
+using MapsterMapper;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using OneOf;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Web;
 using TestAuthentication.Constants;
+using TestAuthentication.Constants.Errors;
+using TestAuthentication.DTOS.General;
 using TestAuthentication.DTOS.Requests;
 using TestAuthentication.DTOS.Responses;
 using TestAuthentication.Models;
@@ -16,174 +22,76 @@ namespace TestAuthentication.Services.AuthService;
 public class AuthServices(IOptions<JwtConfig> options
     , IEmailService _emailSender
     , UserManager<ApplicationUser> _userManager,
-    IHttpContextAccessor _httpContextAccessor) : IAuthServices
+    IHttpContextAccessor _httpContextAccessor,IMapper _mapper) : IAuthServices
 {
     private readonly JwtConfig _jwtConfig = options.Value;
-    public async Task<AuthResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
+    public async Task<OneOf<Error,bool>> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
     {
         var userIsExist = await _userManager.FindByEmailAsync(request.Email);
         if (userIsExist is not null)
-            return new AuthResponse
-            {
-                IsSuccess = false,
-                Message = "User already exist"
-            };
+            return UserError.UserAlreadyExists;
 
-        var user = new ApplicationUser
-        {
-            UserName = request.Username,
-            Email = request.Email,
-            Address = request.Address
-        };
+        var user = request.Adapt<ApplicationUser>();
         var result = await _userManager.CreateAsync(user, request.Password);
         if (!result.Succeeded)
-            return new AuthResponse
-            {
-                IsSuccess = false,
-                Message = "internal server error"
-            };
-
+            return UserError.ServerError;
         await SendEmailConfirmation(user);
-        return new AuthResponse
-        {
-            Message = "User logged in successfully confirm your email",
-            IsSuccess = true
-        };
+        return true;
+        
     }
-    public async Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
+    public async Task<OneOf<AuthResponse, Error>> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByNameAsync(request.Username);
         if (user is null)
-            return new AuthResponse
-            {
-                IsSuccess = false,
-                Message = "User not exist"
-            };
-        if(!user.EmailConfirmed)
-            return new AuthResponse
-            {
-                IsSuccess = false,
-                Message = "Email not confirmed"
-            };
+            return UserError.UserNotFound;
+        if (!user.EmailConfirmed)
+            return UserError.NotConfirmed;  
         var isPasswordValid = await _userManager.CheckPasswordAsync(user, request.Password);
         if (!isPasswordValid)
-            return new AuthResponse
-            {
-                IsSuccess = false,
-                Message = "Invalid password"
-            };
-        var generateTokenResult = GenerateToken(user);
-        return new AuthResponse
-        {
-            Id = user.Id,
-            Username = user.UserName!,
-            Email = user.Email!,
-            Token = generateTokenResult.Item1,
-            ExpiresAt = generateTokenResult.Item2,
-            RefreshToken = GenerateRefreshToken(),
-            RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(_jwtConfig.RefreshExpireTime),
-            Message = "User created successfully",
-            IsSuccess = true
-        };
-
+            return UserError.InvalidPassword;
+        return GenerateResponse(user);
     }
-    public async Task<AuthResponse> ConfirmEmailAsync(ConfirmEmailRequest request, CancellationToken cancellationToken = default)
+    public async Task<OneOf<AuthResponse, Error,bool>> ConfirmEmailAsync(ConfirmEmailRequest request, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByIdAsync(request.UserId);
         if (user is null)
-            return new AuthResponse
-            {
-                IsSuccess = true,
-                Message = "Done"
-            };
+            return true;
 
         var result = await _userManager.ConfirmEmailAsync(user, request.Token);
         if (!result.Succeeded)
-            return new AuthResponse
-            {
-                IsSuccess = false,
-                Message = "internal server error"
-            };
-
-        var generateTokenResult = GenerateToken(user);
-        return new AuthResponse
-        {
-            Id = user.Id,
-            Username = user.UserName!,
-            Email = user.Email!,
-            Token = generateTokenResult.Item1,
-            ExpiresAt = generateTokenResult.Item2,
-            RefreshToken = GenerateRefreshToken(),
-            RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(_jwtConfig.RefreshExpireTime),
-            Message = "User confirmed successfully",
-            IsSuccess = true
-        };
+            return UserError.ServerError;
+        return GenerateResponse(user);
+        
     }
-    public async Task<AuthResponse> ResendEmailConfirmationAsync(string email, CancellationToken cancellationToken = default)
+    public async Task<OneOf<bool,Error>> ResendEmailConfirmationAsync(ResendEmailConfirmationRequest request, CancellationToken cancellationToken = default)
     {
-        var user = await _userManager.FindByEmailAsync(email);
+        var user = await _userManager.FindByEmailAsync(request.Email);
         if (user is null)
-            return new AuthResponse
-            {
-                IsSuccess = false,
-                Message = "User not exist"
-            };
+            return UserError.UserNotFound;
         await SendEmailConfirmation(user);
-        return new AuthResponse
-        {
-            Message = "User logged in successfully confirm your email",
-            IsSuccess = true
-        };
+        return true;
     }
-    public async Task<AuthResponse> ForgetPasswordAsync(string email,CancellationToken cancellationToken=default)
+    public async Task<OneOf<bool, Error>> ForgetPasswordAsync(ForgetPasswordRequest request, CancellationToken cancellationToken = default)
     {
-        var user = await _userManager.FindByEmailAsync(email);
+        var user = await _userManager.FindByEmailAsync(request.Email);
         if (user is null)
-            return new AuthResponse
-            {
-                IsSuccess = false,
-                Message = "User not exist"
-            };
+            return UserError.UserNotFound;
         await SendForgetPassword(user);
-        return new AuthResponse
-        {
-            Message = "email sent reset your password",
-            IsSuccess = true
-        };
-
+        return true;
     }
-    public async Task<AuthResponse> ResetPasswordAsync(string userId, string token,string newPassword, CancellationToken cancellationToken = default)
+    public async Task<OneOf<AuthResponse, Error>> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default)
     {
-        var user = await _userManager.FindByIdAsync(userId);
+        var user = await _userManager.FindByIdAsync(request.UserId);
         if (user is null)
-            return new AuthResponse
-            {
-                IsSuccess = false,
-                Message = "User not exist"
-            };
+            return UserError.UserNotFound;
 
-        var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
+        var result = await _userManager.ResetPasswordAsync(user, request.Token,request.NewPassword);
         if (!result.Succeeded)
-            return new AuthResponse
-            {
-                IsSuccess = false,
-                Message = "internal server error"
-            };
+            return UserError.ServerError;
         var generateTokenResult = GenerateToken(user);
-        return new AuthResponse
-        {
-            Id = user.Id,
-            Username = user.UserName!,
-            Email = user.Email!,
-            Token = generateTokenResult.Item1,
-            ExpiresAt = generateTokenResult.Item2,
-            RefreshToken = GenerateRefreshToken(),
-            RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(_jwtConfig.RefreshExpireTime),
-            Message = "User created successfully",
-            IsSuccess = true
-        };
+        return GenerateResponse(user);
     }
-    private (string, DateTime) GenerateToken(ApplicationUser user)
+    private (string, int) GenerateToken(ApplicationUser user)
     {
         var claims = new List<Claim>
         {
@@ -194,15 +102,14 @@ public class AuthServices(IOptions<JwtConfig> options
         };
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtConfig.Key));
         var signingCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var expiresAt = DateTime.UtcNow.AddMinutes(_jwtConfig.ExpireTime);
         var token = new JwtSecurityToken(
             issuer: _jwtConfig.Issuer,
             audience: _jwtConfig.Audience,
             claims: claims,
-            expires: expiresAt,
+            expires: DateTime.UtcNow.AddMinutes(_jwtConfig.ExpireTime),
             signingCredentials: signingCredentials
             );
-        return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
+        return (new JwtSecurityTokenHandler().WriteToken(token), _jwtConfig.ExpireTime);
     }
 
     private string GenerateRefreshToken()
@@ -219,10 +126,10 @@ public class AuthServices(IOptions<JwtConfig> options
     {
         var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
         Console.WriteLine($"token befor encoded {token}\n\n");
-        var encodedToken = Uri.UnescapeDataString(token);
+        var encodedToken = HttpUtility.UrlEncode(token);
         Console.WriteLine($"token after encoding {encodedToken}\n\n");
         var confirmationLink = _httpContextAccessor.HttpContext != null
-                ? _httpContextAccessor.HttpContext.Request.PathBase + "/api/auth/confirm-email?userId=" + user.Id + "&token=" + token
+                ? _httpContextAccessor.HttpContext.Request.PathBase + "/api/auth/confirm-email?UserId=" + user.Id + "&Token=" + token
                 : throw new InvalidOperationException("HttpContext is not available");
         var emailBody = $@"<h2>مرحبًا {user.UserName}</h2>
                              <p>شكرًا لتسجيلك في تطبيقنا!</p>
@@ -245,6 +152,24 @@ public class AuthServices(IOptions<JwtConfig> options
                       <p>لو الرابط مش شغال، انسخه والصقه في المتصفح:</p>
                       <p>{resetLink}</p>";
         await _emailSender.SendEmailAsync(user.Email!, "Reset Password", emailBody);
+    }
+    private AuthResponse GenerateResponse(ApplicationUser user)
+    {
+        var userData = _mapper.Map<UserData>(user);
+        var generateTokenResult = GenerateToken(user);
+        var tokenData = new TokenData
+        {
+            AccessToken = generateTokenResult.Item1,
+            AccessTokenExpiresIn = generateTokenResult.Item2,
+            RefreshToken = GenerateRefreshToken(),
+            RefreshTokenExpiresIn = DateTime.UtcNow.AddDays(_jwtConfig.RefreshExpireTime)
+        };
+
+        return new AuthResponse
+        {
+            User = userData,
+            Token = tokenData
+        };
     }
 }
 

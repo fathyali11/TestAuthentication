@@ -1,7 +1,7 @@
 ﻿namespace TestAuthentication.DTOS.Requests;
 
 public record RegisterRequest(
-    string Username,
+    string UserName,
     string Email,
     string Address,
     string Password

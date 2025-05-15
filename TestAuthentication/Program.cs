@@ -1,3 +1,4 @@
+using Mapster;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -6,6 +7,7 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using TestAuthentication.Constants;
 using TestAuthentication.Data;
+using TestAuthentication.Mappings;
 using TestAuthentication.Models;
 using TestAuthentication.Services.AuthService;
 using TestAuthentication.Services.EmailServices;
@@ -87,6 +89,8 @@ builder.Services.AddOptions<EmailSettings>()
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuthServices, AuthServices>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddMapster();
+UserMapping.ConfigMapping();
 
 
 
