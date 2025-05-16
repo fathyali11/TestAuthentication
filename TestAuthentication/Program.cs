@@ -1,3 +1,4 @@
+using FluentValidation;
 using Mapster;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -6,7 +7,9 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using TestAuthentication.Constants;
+using TestAuthentication.CustomValidations;
 using TestAuthentication.Data;
+using TestAuthentication.DTOS.Requests;
 using TestAuthentication.Mappings;
 using TestAuthentication.Models;
 using TestAuthentication.Services.AuthService;
@@ -92,7 +95,7 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddMapster();
 UserMapping.ConfigMapping();
 
-
+builder.Services.AddScoped<IValidator<RegisterRequest>,RegisterRequestValidator>();
 
 var app = builder.Build();
 

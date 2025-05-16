@@ -7,7 +7,7 @@ namespace TestAuthentication.Services.AuthService;
 
 public interface IAuthServices
 {
-    Task<OneOf<Error,bool>> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default);
+    Task<OneOf<List<ValidationError>,Error,bool>> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default);
     Task<OneOf<AuthResponse, Error>> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default);
     Task<OneOf<AuthResponse,Error,bool>> ConfirmEmailAsync(ConfirmEmailRequest request, CancellationToken cancellationToken = default);
     Task<OneOf<bool, Error>> ResendEmailConfirmationAsync(ResendEmailConfirmationRequest request, CancellationToken cancellationToken = default);

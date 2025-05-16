@@ -1,4 +1,5 @@
 ﻿
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using TestAuthentication.DTOS.Requests;
 using TestAuthentication.Services.AuthService;
@@ -14,7 +15,9 @@ public class AuthController(IAuthServices _authServices) : ControllerBase
         var result = await _authServices.RegisterAsync(request, cancellationToken);
         if (result.IsT0)
             return BadRequest(result.AsT0);
-        return Ok(result.AsT1);
+        else if (result.IsT1)
+            return BadRequest(result.AsT1);
+        return Ok(result.AsT2);
     }
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken = default)

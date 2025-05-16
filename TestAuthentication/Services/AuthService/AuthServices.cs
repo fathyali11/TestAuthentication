@@ -1,6 +1,8 @@
-﻿using Mapster;
+﻿using FluentValidation;
+using Mapster;
 using MapsterMapper;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using OneOf;
@@ -11,6 +13,7 @@ using System.Text;
 using System.Web;
 using TestAuthentication.Constants;
 using TestAuthentication.Constants.Errors;
+using TestAuthentication.CustomValidations;
 using TestAuthentication.DTOS.General;
 using TestAuthentication.DTOS.Requests;
 using TestAuthentication.DTOS.Responses;
@@ -22,11 +25,24 @@ namespace TestAuthentication.Services.AuthService;
 public class AuthServices(IOptions<JwtConfig> options
     , IEmailService _emailSender
     , UserManager<ApplicationUser> _userManager,
-    IHttpContextAccessor _httpContextAccessor,IMapper _mapper) : IAuthServices
+    IHttpContextAccessor _httpContextAccessor,IMapper _mapper,
+    IValidator<RegisterRequest> _reigsterRequestValidator
+    ) : IAuthServices
 {
     private readonly JwtConfig _jwtConfig = options.Value;
-    public async Task<OneOf<Error,bool>> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
+    public async Task<OneOf<List<ValidationError>,Error,bool>> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
     {
+        var validationResult = await _reigsterRequestValidator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            var errors = validationResult.Errors
+                .Select(e => new ValidationError(
+                    e.PropertyName,
+                    e.ErrorMessage
+                    )
+                ).ToList();
+            return errors;
+        }
         var userIsExist = await _userManager.FindByEmailAsync(request.Email);
         if (userIsExist is not null)
             return UserError.UserAlreadyExists;
