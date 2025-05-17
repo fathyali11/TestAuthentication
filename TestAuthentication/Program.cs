@@ -98,6 +98,7 @@ UserMapping.ConfigMapping();
 builder.Services.AddScoped<IValidator<RegisterRequest>,RegisterRequestValidator>();
 builder.Services.AddScoped<IValidator<LoginRequest>, LoginRequestValidator>();
 builder.Services.AddScoped<IValidator<ConfirmEmailRequest>, ConfirmEmailRequestValidator>();
+builder.Services.AddScoped<IValidator<ForgetPasswordRequest>, ForgetPasswordRequestValidator>();
 
 var app = builder.Build();
 

@@ -54,9 +54,12 @@ public class AuthController(IAuthServices _authServices) : ControllerBase
     public async Task<IActionResult> ForgetPassword([FromBody] ForgetPasswordRequest request, CancellationToken cancellationToken = default)
     {
         var result = await _authServices.ForgetPasswordAsync(request, cancellationToken);
-        if (result.IsT1)
-            return BadRequest(result.AsT1);
-        return Ok(result.AsT0);
+        if(result.IsT0)
+            return BadRequest(result.AsT0);
+        else if (result.IsT1)
+            return Ok(result.AsT1);
+        else
+            return BadRequest(result.AsT2);
     }
     [HttpPost("reset-password")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken cancellationToken = default)

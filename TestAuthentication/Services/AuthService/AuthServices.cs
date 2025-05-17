@@ -25,26 +25,19 @@ namespace TestAuthentication.Services.AuthService;
 public class AuthServices(IOptions<JwtConfig> options
     , IEmailService _emailSender
     , UserManager<ApplicationUser> _userManager,
-    IHttpContextAccessor _httpContextAccessor,IMapper _mapper,
+    IHttpContextAccessor _httpContextAccessor, IMapper _mapper,
     IValidator<RegisterRequest> _reigsterRequestValidator,
     IValidator<LoginRequest> _loginRequestValidator,
-    IValidator<ConfirmEmailRequest> _confirmEmailRequestValidator
+    IValidator<ConfirmEmailRequest> _confirmEmailRequestValidator,
+    IValidator<ForgetPasswordRequest> _forgetPasswordRequestValidator
     ) : IAuthServices
 {
     private readonly JwtConfig _jwtConfig = options.Value;
-    public async Task<OneOf<List<ValidationError>,Error,bool>> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
+    public async Task<OneOf<List<ValidationError>, Error, bool>> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
     {
-        var validationResult = await _reigsterRequestValidator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            var errors = validationResult.Errors
-                .Select(e => new ValidationError(
-                    e.PropertyName,
-                    e.ErrorMessage
-                    )
-                ).ToList();
-            return errors;
-        }
+        var validationResult = await ValidateRequest(_reigsterRequestValidator, request);
+        if (validationResult is not null)
+            return validationResult;
         var userIsExist = await _userManager.FindByEmailAsync(request.Email);
         if (userIsExist is not null)
             return UserError.UserAlreadyExists;
@@ -55,44 +48,28 @@ public class AuthServices(IOptions<JwtConfig> options
             return UserError.ServerError;
         await SendEmailConfirmation(user);
         return true;
-        
+
     }
     public async Task<OneOf<List<ValidationError>, AuthResponse, Error>> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
-        var validationResult = await _loginRequestValidator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            var errors = validationResult.Errors
-                .Select(e => new ValidationError(
-                    e.PropertyName,
-                    e.ErrorMessage
-                    )
-                ).ToList();
-            return errors;
-        }
+        var validationResult = await ValidateRequest(_loginRequestValidator, request);
+        if (validationResult is not null)
+            return validationResult;
         var user = await _userManager.FindByNameAsync(request.Username);
         if (user is null)
             return UserError.UserNotFound;
         if (!user.EmailConfirmed)
-            return UserError.NotConfirmed;  
+            return UserError.NotConfirmed;
         var isPasswordValid = await _userManager.CheckPasswordAsync(user, request.Password);
         if (!isPasswordValid)
             return UserError.InvalidPassword;
         return GenerateResponse(user);
     }
-    public async Task<OneOf<List<ValidationError>, AuthResponse, Error,bool>> ConfirmEmailAsync(ConfirmEmailRequest request, CancellationToken cancellationToken = default)
+    public async Task<OneOf<List<ValidationError>, AuthResponse, Error, bool>> ConfirmEmailAsync(ConfirmEmailRequest request, CancellationToken cancellationToken = default)
     {
-        var validationResult = await _confirmEmailRequestValidator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            var errors = validationResult.Errors
-                .Select(e => new ValidationError(
-                    e.PropertyName,
-                    e.ErrorMessage
-                    )
-                ).ToList();
-            return errors;
-        }
+        var validationResult = await ValidateRequest(_confirmEmailRequestValidator, request);
+        if (validationResult is not null)
+            return validationResult;
         var user = await _userManager.FindByIdAsync(request.UserId);
         if (user is null)
             return true;
@@ -101,9 +78,9 @@ public class AuthServices(IOptions<JwtConfig> options
         if (!result.Succeeded)
             return UserError.ServerError;
         return GenerateResponse(user);
-        
+
     }
-    public async Task<OneOf<List<ValidationError>, bool,Error>> ResendEmailConfirmationAsync(ResendEmailConfirmationRequest request, CancellationToken cancellationToken = default)
+    public async Task<OneOf<List<ValidationError>, bool, Error>> ResendEmailConfirmationAsync(ResendEmailConfirmationRequest request, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByEmailAsync(request.Email);
         if (user is null)
@@ -113,6 +90,10 @@ public class AuthServices(IOptions<JwtConfig> options
     }
     public async Task<OneOf<List<ValidationError>, bool, Error>> ForgetPasswordAsync(ForgetPasswordRequest request, CancellationToken cancellationToken = default)
     {
+        var validationResult =await ValidateRequest(_forgetPasswordRequestValidator,request);
+        if (validationResult is not null)
+            return validationResult;
+
         var user = await _userManager.FindByEmailAsync(request.Email);
         if (user is null)
             return UserError.UserNotFound;
@@ -125,7 +106,7 @@ public class AuthServices(IOptions<JwtConfig> options
         if (user is null)
             return UserError.UserNotFound;
 
-        var result = await _userManager.ResetPasswordAsync(user, request.Token,request.NewPassword);
+        var result = await _userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
         if (!result.Succeeded)
             return UserError.ServerError;
         var generateTokenResult = GenerateToken(user);
@@ -211,6 +192,24 @@ public class AuthServices(IOptions<JwtConfig> options
             Token = tokenData
         };
     }
+
+    private async Task<List<ValidationError>?> ValidateRequest<TSource, TRequest>(TSource source, TRequest request)
+          where TSource : IValidator<TRequest>
+          where TRequest : class
+    {
+        var validationResult = await source.ValidateAsync(request);
+        if (!validationResult.IsValid)
+        {
+            var errors = validationResult.Errors
+                .Select(e => new ValidationError(
+                    e.PropertyName,
+                    e.ErrorMessage
+                    )
+                ).ToList();
+            return errors;
+        }
+        return null;
+    } 
 }
 
 
