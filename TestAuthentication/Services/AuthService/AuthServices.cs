@@ -29,7 +29,9 @@ public class AuthServices(IOptions<JwtConfig> options
     IValidator<RegisterRequest> _reigsterRequestValidator,
     IValidator<LoginRequest> _loginRequestValidator,
     IValidator<ConfirmEmailRequest> _confirmEmailRequestValidator,
-    IValidator<ForgetPasswordRequest> _forgetPasswordRequestValidator
+    IValidator<ForgetPasswordRequest> _forgetPasswordRequestValidator,
+    IValidator<ResetPasswordRequest> _resetPasswordRequestValidator,
+    IValidator<ResendEmailConfirmationRequest> _resendEmailConfirmationRequestValidator
     ) : IAuthServices
 {
     private readonly JwtConfig _jwtConfig = options.Value;
@@ -82,6 +84,9 @@ public class AuthServices(IOptions<JwtConfig> options
     }
     public async Task<OneOf<List<ValidationError>, bool, Error>> ResendEmailConfirmationAsync(ResendEmailConfirmationRequest request, CancellationToken cancellationToken = default)
     {
+        var validationResult = await ValidateRequest(_resendEmailConfirmationRequestValidator, request);
+        if (validationResult is not null)
+            return validationResult;
         var user = await _userManager.FindByEmailAsync(request.Email);
         if (user is null)
             return UserError.UserNotFound;
@@ -102,6 +107,9 @@ public class AuthServices(IOptions<JwtConfig> options
     }
     public async Task<OneOf<List<ValidationError>, AuthResponse, Error>> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default)
     {
+        var validationResult = await ValidateRequest(_resetPasswordRequestValidator, request);
+        if (validationResult is not null)
+            return validationResult;
         var user = await _userManager.FindByIdAsync(request.UserId);
         if (user is null)
             return UserError.UserNotFound;
