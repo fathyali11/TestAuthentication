@@ -33,11 +33,14 @@ public class AuthController(IAuthServices _authServices) : ControllerBase
     public async Task<IActionResult> ConfirmEmail([FromQuery] ConfirmEmailRequest request, CancellationToken cancellationToken = default)
     {
         var result = await _authServices.ConfirmEmailAsync(request, cancellationToken);
-        if (result.IsT1)
-            return BadRequest(result.AsT1);
-        else if (result.IsT2)
-            return Ok(result.AsT2);
-        return Ok(result.AsT0);
+        if(result.IsT0)
+            return BadRequest(result.AsT0);
+        else if (result.IsT1)
+            return Ok(result.AsT1);
+        else if(result.IsT2)
+            return BadRequest(result.AsT2);
+        return Ok(result.AsT3);
+
     }
     [HttpPost("resend-email-confirmation")]
     public async Task<IActionResult> ResendEmailConfirmation([FromBody] ResendEmailConfirmationRequest request, CancellationToken cancellationToken = default)
