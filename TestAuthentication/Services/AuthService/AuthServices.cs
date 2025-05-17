@@ -26,7 +26,8 @@ public class AuthServices(IOptions<JwtConfig> options
     , IEmailService _emailSender
     , UserManager<ApplicationUser> _userManager,
     IHttpContextAccessor _httpContextAccessor,IMapper _mapper,
-    IValidator<RegisterRequest> _reigsterRequestValidator
+    IValidator<RegisterRequest> _reigsterRequestValidator,
+    IValidator<LoginRequest> _loginRequestValidator
     ) : IAuthServices
 {
     private readonly JwtConfig _jwtConfig = options.Value;
@@ -55,8 +56,19 @@ public class AuthServices(IOptions<JwtConfig> options
         return true;
         
     }
-    public async Task<OneOf<AuthResponse, Error>> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
+    public async Task<OneOf<List<ValidationError>, AuthResponse, Error>> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
+        var validationResult = await _loginRequestValidator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            var errors = validationResult.Errors
+                .Select(e => new ValidationError(
+                    e.PropertyName,
+                    e.ErrorMessage
+                    )
+                ).ToList();
+            return errors;
+        }
         var user = await _userManager.FindByNameAsync(request.Username);
         if (user is null)
             return UserError.UserNotFound;
