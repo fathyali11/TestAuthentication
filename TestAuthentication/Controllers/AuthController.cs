@@ -1,6 +1,4 @@
-﻿
-using FluentValidation;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using TestAuthentication.DTOS.Requests;
 using TestAuthentication.Services.AuthService;
 
