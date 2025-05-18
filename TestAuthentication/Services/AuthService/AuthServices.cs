@@ -1,8 +1,8 @@
 ﻿using FluentValidation;
+using Hangfire;
 using Mapster;
 using MapsterMapper;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using OneOf;
@@ -13,7 +13,6 @@ using System.Text;
 using System.Web;
 using TestAuthentication.Constants;
 using TestAuthentication.Constants.Errors;
-using TestAuthentication.CustomValidations;
 using TestAuthentication.DTOS.General;
 using TestAuthentication.DTOS.Requests;
 using TestAuthentication.DTOS.Responses;
@@ -166,7 +165,7 @@ public class AuthServices(IOptions<JwtConfig> options
                              <a href='{confirmationLink}' style='padding: 10px; background-color: #28a745; color: white; text-decoration: none;'>تفعيل الحساب</a>
                              <p>لو الرابط مش شغال، انسخه والصقه في المتصفح:</p>
                              <p>{confirmationLink}</p>";
-        await _emailSender.SendEmailAsync(user.Email!, "تفعيل حسابك", emailBody);
+        BackgroundJob.Enqueue(() => _emailSender.SendEmailAsync(user.Email!, "تفعيل حسابك", emailBody));
     }
     private async Task SendForgetPassword(ApplicationUser user)
     {
@@ -180,7 +179,7 @@ public class AuthServices(IOptions<JwtConfig> options
                       <a href='{resetLink}' style='padding: 10px; background-color: #28a745; color: white; text-decoration: none;'>إعادة تعيين كلمة السر</a>
                       <p>لو الرابط مش شغال، انسخه والصقه في المتصفح:</p>
                       <p>{resetLink}</p>";
-        await _emailSender.SendEmailAsync(user.Email!, "Reset Password", emailBody);
+        BackgroundJob.Enqueue(() => _emailSender.SendEmailAsync(user.Email!, "إعادة تعيين كلمة السر", emailBody));
     }
     private AuthResponse GenerateResponse(ApplicationUser user)
     {
