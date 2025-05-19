@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Serilog;
 using System.Text;
 using TestAuthentication.Constants;
 using TestAuthentication.CustomValidations;
@@ -16,8 +17,15 @@ using TestAuthentication.Models;
 using TestAuthentication.Services.AuthService;
 using TestAuthentication.Services.EmailServices;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Host.UseSerilog((context, services, configuration) =>
+{
+    configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services);
+});
 // Add services to the container.
 
 builder.Services.AddControllers();
