@@ -13,6 +13,7 @@ using System.Text;
 using TestAuthentication.Constants;
 using TestAuthentication.CustomValidations;
 using TestAuthentication.Data;
+using TestAuthentication.DataSeeders;
 using TestAuthentication.DTOS.Requests;
 using TestAuthentication.Mappings;
 using TestAuthentication.Models;
@@ -112,7 +113,7 @@ builder.Services.AddScoped<IValidator<ConfirmEmailRequest>, ConfirmEmailRequestV
 builder.Services.AddScoped<IValidator<ForgetPasswordRequest>, ForgetPasswordRequestValidator>();
 builder.Services.AddScoped<IValidator<ResetPasswordRequest>, ResetPasswordRequestValidator>();
 builder.Services.AddScoped<IValidator<ResendEmailConfirmationRequest>, ResendEmailConfirmationRequestValidator>();
-
+builder.Services.AddHostedService<DataSeederHostedService>();
 
 builder.Services.AddHangfire(config => config
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
@@ -123,6 +124,8 @@ builder.Services.AddHangfire(config => config
 builder.Services.AddHangfireServer();
 
 var app = builder.Build();
+
+
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

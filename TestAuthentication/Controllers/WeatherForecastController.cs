@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TestAuthentication.Constants.AuthoriaztionFilters;
+using TestAuthentication.CustomAuthorization;
 using TestAuthentication.Models;
 
 namespace TestAuthentication.Controllers
@@ -20,7 +22,7 @@ namespace TestAuthentication.Controllers
         {
             _logger = logger;
         }
-
+        [HasPermission(AdminRoleAndPermissions.CanViewUser)]
         [HttpGet]
         public IEnumerable<WeatherForecast> Get()
         {
