@@ -113,6 +113,7 @@ builder.Services.AddScoped<IValidator<ConfirmEmailRequest>, ConfirmEmailRequestV
 builder.Services.AddScoped<IValidator<ForgetPasswordRequest>, ForgetPasswordRequestValidator>();
 builder.Services.AddScoped<IValidator<ResetPasswordRequest>, ResetPasswordRequestValidator>();
 builder.Services.AddScoped<IValidator<ResendEmailConfirmationRequest>, ResendEmailConfirmationRequestValidator>();
+builder.Services.AddScoped<IValidator<AddToRoleRequest>, AddToRoleRequestValidator>();
 builder.Services.AddHostedService<DataSeederHostedService>();
 
 builder.Services.AddHangfire(config => config

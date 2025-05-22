@@ -36,6 +36,7 @@ public class AuthServices(
     IValidator<ForgetPasswordRequest> _forgetPasswordRequestValidator,
     IValidator<ResetPasswordRequest> _resetPasswordRequestValidator,
     IValidator<ResendEmailConfirmationRequest> _resendEmailConfirmationRequestValidator,
+    IValidator<AddToRoleRequest> _addToRoleRequestValidator,
     ILogger<AuthServices> _logger,
     RoleManager<IdentityRole> _roleManager,
     ApplicationDbContext _context
@@ -222,6 +223,12 @@ public class AuthServices(
 
     public async Task<OneOf<List<ValidationError>, bool, Error>> AddToRoleAsync(AddToRoleRequest request, CancellationToken cancellationToken = default)
     {
+        var validationResult = await ValidateRequest(_addToRoleRequestValidator, request);
+        if (validationResult is not null)
+        {
+            _logger.LogWarning("Validation failed for adding user to role: {Errors}", validationResult);
+            return validationResult;
+        }
         _logger.LogInformation("Adding user Email: {Email} to role: {RoleName}", request.Email, request.RoleName);
         var user = await _userManager.FindByEmailAsync(request.Email);
         if (user is null)
