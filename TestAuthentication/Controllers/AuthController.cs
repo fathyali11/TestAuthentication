@@ -73,4 +73,15 @@ public class AuthController(IAuthServices _authServices) : ControllerBase
         else
             return BadRequest(result.AsT2);
     }
+    [HttpPost("add-to-role")]
+    public async Task<IActionResult> AddToRole([FromBody] AddToRoleRequest request, CancellationToken cancellationToken = default)
+    {
+        var result = await _authServices.AddToRoleAsync(request, cancellationToken);
+        if (result.IsT0)
+            return BadRequest(result.AsT0);
+        else if (result.IsT1)
+            return Ok(result.AsT1);
+        else
+            return BadRequest(result.AsT2);
+    }
 }

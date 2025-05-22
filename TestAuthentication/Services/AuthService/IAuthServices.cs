@@ -13,4 +13,5 @@ public interface IAuthServices
     Task<OneOf<List<ValidationError>,bool, Error>> ResendEmailConfirmationAsync(ResendEmailConfirmationRequest request, CancellationToken cancellationToken = default);
     Task<OneOf<List<ValidationError>,bool,Error>> ForgetPasswordAsync(ForgetPasswordRequest request, CancellationToken cancellationToken = default);
     Task<OneOf<List<ValidationError>,AuthResponse, Error>> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default);
+    Task<OneOf<List<ValidationError>, bool, Error>> AddToRoleAsync(AddToRoleRequest request, CancellationToken cancellationToken = default);
 }

@@ -3,6 +3,7 @@ using Hangfire;
 using Mapster;
 using MapsterMapper;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using OneOf;
@@ -12,7 +13,9 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Web;
 using TestAuthentication.Constants;
+using TestAuthentication.Constants.AuthoriaztionFilters;
 using TestAuthentication.Constants.Errors;
+using TestAuthentication.Data;
 using TestAuthentication.DTOS.General;
 using TestAuthentication.DTOS.Requests;
 using TestAuthentication.DTOS.Responses;
@@ -33,7 +36,9 @@ public class AuthServices(
     IValidator<ForgetPasswordRequest> _forgetPasswordRequestValidator,
     IValidator<ResetPasswordRequest> _resetPasswordRequestValidator,
     IValidator<ResendEmailConfirmationRequest> _resendEmailConfirmationRequestValidator,
-    ILogger<AuthServices> _logger
+    ILogger<AuthServices> _logger,
+    RoleManager<IdentityRole> _roleManager,
+    ApplicationDbContext _context
 ) : IAuthServices
 {
     private readonly JwtConfig _jwtConfig = options.Value;
@@ -65,6 +70,7 @@ public class AuthServices(
             _logger.LogError("User registration failed: {Errors}", result.Errors);
             return UserError.ServerError;
         }
+        await _userManager.AddToRoleAsync(user, CustomerRoleAndPermissions.Name);
         await SendEmailConfirmation(user);
         _logger.LogInformation("User registration successful, email confirmation sent to: {Email}", request.Email);
         return true;
@@ -103,7 +109,7 @@ public class AuthServices(
         }
 
         _logger.LogInformation("Login successful for user: {Username}", request.Username);
-        return GenerateResponse(user);
+        return await GenerateResponse(user);
     }
 
     public async Task<OneOf<List<ValidationError>, AuthResponse, Error, bool>> ConfirmEmailAsync(ConfirmEmailRequest request, CancellationToken cancellationToken = default)
@@ -133,7 +139,7 @@ public class AuthServices(
         }
 
         _logger.LogInformation("Email confirmed successfully for user ID: {UserId}", request.UserId);
-        return GenerateResponse(user);
+        return await GenerateResponse(user);
     }
 
     public async Task<OneOf<List<ValidationError>, bool, Error>> ResendEmailConfirmationAsync(ResendEmailConfirmationRequest request, CancellationToken cancellationToken = default)
@@ -211,10 +217,40 @@ public class AuthServices(
         }
 
         _logger.LogInformation("Password reset successful for user ID: {UserId}", request.UserId);
-        return GenerateResponse(user);
+        return await GenerateResponse(user);
     }
 
-    private (string, int) GenerateToken(ApplicationUser user)
+    public async Task<OneOf<List<ValidationError>, bool, Error>> AddToRoleAsync(AddToRoleRequest request, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Adding user Email: {Email} to role: {RoleName}", request.Email, request.RoleName);
+        var user = await _userManager.FindByEmailAsync(request.Email);
+        if (user is null)
+        {
+            _logger.LogWarning("User not found with Email: {Email}", request.Email);
+            return UserError.UserNotFound;
+        }
+        var roleExists = await _roleManager.RoleExistsAsync(request.RoleName);
+        if (!roleExists)
+        {
+            _logger.LogWarning("Role not found: {RoleName}", request.RoleName);
+            return UserError.InvalidToken;
+        }
+        var isUserInRole = await _userManager.IsInRoleAsync(user, request.RoleName);
+        if (isUserInRole)
+        {
+            _logger.LogWarning("User Email: {Email} is already in role: {RoleName}", request.Email, request.RoleName);
+            return UserError.InvalidToken;
+        }
+        var result = await _userManager.AddToRoleAsync(user, request.RoleName);
+        if (!result.Succeeded)
+        {
+            _logger.LogError("Failed to add user Email: {Email} to role: {RoleName}, Errors: {Errors}", request.Email, request.RoleName, result.Errors);
+            return UserError.ServerError;
+        }
+        _logger.LogInformation("User Email: {Email} added to role: {RoleName} successfully", request.Email, request.RoleName);
+        return true;
+    }
+    private (string, int) GenerateToken(ApplicationUser user,List<string>permissions)
     {
         _logger.LogInformation("Generating JWT token for user: {Username}", user.UserName);
 
@@ -223,7 +259,8 @@ public class AuthServices(
             new Claim(JwtRegisteredClaimNames.Sub, user.UserName!),
             new Claim(JwtRegisteredClaimNames.Email, user.Email!),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim("Address", user.Address)
+            new Claim("Address", user.Address),
+            new Claim("Permissions", string.Join(",", permissions))
         };
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtConfig.Key));
         var signingCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -298,12 +335,17 @@ public class AuthServices(
         _logger.LogInformation("Forget password email enqueued successfully for user: {Email}", user.Email);
     }
 
-    private AuthResponse GenerateResponse(ApplicationUser user)
+    private async Task<AuthResponse> GenerateResponse(ApplicationUser user)
     {
         _logger.LogInformation("Generating authentication response for user: {Username}", user.UserName);
+        var role = await _context.UserRoles.FirstOrDefaultAsync(x => x.UserId == user.Id);
+
+        var permissions=await _context.RoleClaims
+            .Where(x => x.RoleId == role!.RoleId)
+            .Select(x => x.ClaimValue!).ToListAsync();
 
         var userData = _mapper.Map<UserData>(user);
-        var generateTokenResult = GenerateToken(user);
+        var generateTokenResult = GenerateToken(user,permissions);
         var tokenData = new TokenData
         {
             AccessToken = generateTokenResult.Item1,
