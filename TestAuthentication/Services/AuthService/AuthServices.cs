@@ -11,6 +11,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Web;
 using TestAuthentication.Constants;
 using TestAuthentication.Constants.AuthoriaztionFilters;
@@ -263,11 +264,11 @@ public class AuthServices(
 
         var claims = new List<Claim>
         {
-            new Claim(JwtRegisteredClaimNames.Sub, user.UserName!),
+            new Claim(JwtRegisteredClaimNames.Sub, user.Id!),
             new Claim(JwtRegisteredClaimNames.Email, user.Email!),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim("Address", user.Address),
-            new Claim("Permissions", string.Join(",", permissions))
+            new Claim(AdminRoleAndPermissions.Type, JsonSerializer.Serialize(permissions),JsonClaimValueTypes.JsonArray)
         };
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtConfig.Key));
         var signingCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -346,13 +347,14 @@ public class AuthServices(
     {
         _logger.LogInformation("Generating authentication response for user: {Username}", user.UserName);
         var role = await _context.UserRoles.FirstOrDefaultAsync(x => x.UserId == user.Id);
-
+        
         var permissions=await _context.RoleClaims
             .Where(x => x.RoleId == role!.RoleId)
-            .Select(x => x.ClaimValue!).ToListAsync();
+            .Select(x => x.ClaimValue)
+            .ToListAsync();
 
         var userData = _mapper.Map<UserData>(user);
-        var generateTokenResult = GenerateToken(user,permissions);
+        var generateTokenResult = GenerateToken(user,permissions!);
         var tokenData = new TokenData
         {
             AccessToken = generateTokenResult.Item1,
