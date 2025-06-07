@@ -19,6 +19,7 @@ using TestAuthentication.Mappings;
 using TestAuthentication.Models;
 using TestAuthentication.Services.AuthService;
 using TestAuthentication.Services.EmailServices;
+using TestAuthentication.Services.General;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -104,6 +105,7 @@ builder.Services.AddOptions<EmailSettings>()
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuthServices, AuthServices>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<ValidationService>();
 builder.Services.AddMapster();
 UserMapping.ConfigMapping();
 
@@ -114,7 +116,8 @@ builder.Services.AddScoped<IValidator<ForgetPasswordRequest>, ForgetPasswordRequ
 builder.Services.AddScoped<IValidator<ResetPasswordRequest>, ResetPasswordRequestValidator>();
 builder.Services.AddScoped<IValidator<ResendEmailConfirmationRequest>, ResendEmailConfirmationRequestValidator>();
 builder.Services.AddScoped<IValidator<AddToRoleRequest>, AddToRoleRequestValidator>();
-builder.Services.AddHostedService<DataSeederHostedService>();
+builder.Services.AddScoped<IValidator<ChangePasswordRequest>, ChangePasswordRequestValidator>();
+//builder.Services.AddHostedService<DataSeederHostedService>();
 
 builder.Services.AddHangfire(config => config
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
