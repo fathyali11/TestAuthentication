@@ -23,6 +23,17 @@ public static class AdminRoleAndPermissions
     public const string CanEditPermission = "CanEditPermission";
     public const string CanViewPermission = "CanViewPermission";
 
+    public const string CanViewUserProfile = "CanViewUserProfile";
+    public const string CanEditUserProfile = "CanEditUserProfile";
+    public const string CanDeleteUserProfile = "CanDeleteUserProfile";
+    public const string CanCreateUserProfile = "CanCreateUserProfile";
+
+    public const string CanViewUserProfilePicture = "CanViewUserProfilePicture";
+    public const string CanEditUserProfilePicture = "CanEditUserProfilePicture";
+    public const string CanDeleteUserProfilePicture = "CanDeleteUserProfilePicture";
+    public const string CanCreateUserProfilePicture = "CanCreateUserProfilePicture";
+
+
     public static IList<string?> GetAllPermissions()=>
         typeof(AdminRoleAndPermissions).GetFields().Select(x=>x.GetValue(x) as string).ToList();
 }
