@@ -13,7 +13,7 @@ namespace TestAuthentication.Services.UserServices;
 public class UserService(IValidator<ChangePasswordRequest> _changePasswordRequestValidator,
     UserManager<ApplicationUser> _userManager,
     ILogger<UserService> _logger,
-    ValidationService _validationService)
+    ValidationService _validationService):IUserService
 {
     public async Task<OneOf<List<ValidationError>, bool, Error>> ChangePasswordAsync(string userId,ChangePasswordRequest request,CancellationToken cancellationToken=default)
     {
