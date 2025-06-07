@@ -23,6 +23,19 @@ public class DataSeederHostedService(IServiceProvider _serviceProvider) :IHosted
 
         foreach (var permission in adminPermissions)
             await _roleManager.AddClaimAsync(adminRole!, new Claim(AdminRoleAndPermissions.Type, permission!));
+
+        // Create default customer user and it's permissions
+        var customerPermissions = CustomerRoleAndPermissions.GetAllPermissions();
+        if (!await _roleManager.RoleExistsAsync(CustomerRoleAndPermissions.Name))
+            await _roleManager.CreateAsync(new IdentityRole(CustomerRoleAndPermissions.Name));
+
+        var customerRole = await _roleManager.FindByNameAsync(CustomerRoleAndPermissions.Name);
+        if (customerRole is null)
+            await _roleManager.CreateAsync(new IdentityRole(CustomerRoleAndPermissions.Name));
+
+        foreach (var permission in customerPermissions)
+            await _roleManager.AddClaimAsync(customerRole!, new Claim(CustomerRoleAndPermissions.Type, permission!));
+
     }
 
     public Task StopAsync(CancellationToken cancellationToken) =>
