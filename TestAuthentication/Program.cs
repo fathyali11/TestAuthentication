@@ -20,6 +20,7 @@ using TestAuthentication.Models;
 using TestAuthentication.Services.AuthService;
 using TestAuthentication.Services.EmailServices;
 using TestAuthentication.Services.General;
+using TestAuthentication.Services.UserServices;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -117,6 +118,7 @@ builder.Services.AddScoped<IValidator<ResetPasswordRequest>, ResetPasswordReques
 builder.Services.AddScoped<IValidator<ResendEmailConfirmationRequest>, ResendEmailConfirmationRequestValidator>();
 builder.Services.AddScoped<IValidator<AddToRoleRequest>, AddToRoleRequestValidator>();
 builder.Services.AddScoped<IValidator<ChangePasswordRequest>, ChangePasswordRequestValidator>();
+builder.Services.AddScoped<IUserService, UserService>();
 //builder.Services.AddHostedService<DataSeederHostedService>();
 
 builder.Services.AddHangfire(config => config
