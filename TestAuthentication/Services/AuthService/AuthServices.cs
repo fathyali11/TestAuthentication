@@ -66,6 +66,13 @@ public class AuthServices(
 
         _logger.LogInformation("Creating new user with email: {Email}", request.Email);
         var user = request.Adapt<ApplicationUser>();
+        var profilePictureUrl = await SaveImageToLocal(request.ProfilePicture);
+        if(profilePictureUrl is null)
+        {
+            _logger.LogError("Failed to save profile picture for user: {Email}", request.Email);
+            return UserError.ServerError;
+        }
+        user.ProfilePictureUrl = profilePictureUrl;
         var result = await _userManager.CreateAsync(user, request.Password);
         if (!result.Succeeded)
         {
@@ -390,6 +397,29 @@ public class AuthServices(
         }
 
         _logger.LogInformation("Validation successful for request type: {RequestType}", typeof(TRequest).Name);
+        return null;
+    }
+
+    // implement method to save image in local and return the path of the image
+    private async Task<string?> SaveImageToLocal(IFormFile imageFile)
+    {
+        if (imageFile != null && imageFile.Length > 0)
+        {
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images");
+
+            if (!Directory.Exists(uploadsFolder))
+                Directory.CreateDirectory(uploadsFolder);
+
+            // Generate a unique file name to avoid overwriting
+            var uniqueFileName = $"{Guid.NewGuid().ToString()}_{imageFile.FileName}";
+            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+            // Save the file to the local directory
+            using (var fileStream = new FileStream(filePath, FileMode.Create))
+                await imageFile.CopyToAsync(fileStream);
+
+            return filePath;
+        }
         return null;
     }
 }
