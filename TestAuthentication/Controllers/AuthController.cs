@@ -8,7 +8,7 @@ namespace TestAuthentication.Controllers;
 public class AuthController(IAuthServices _authServices) : ControllerBase
 {
     [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Register([FromForm] RegisterRequest request, CancellationToken cancellationToken = default)
     {
         var result = await _authServices.RegisterAsync(request, cancellationToken);
         if (result.IsT0)
