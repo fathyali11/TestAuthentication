@@ -3,6 +3,7 @@ using Hangfire;
 using Mapster;
 using MapsterMapper;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -140,7 +141,10 @@ public class AuthServices(
             return true;
         }
 
-        var result = await _userManager.ConfirmEmailAsync(user, request.Token);
+        var decodedBytes = WebEncoders.Base64UrlDecode(request.Token);
+        var decodedToken = Encoding.UTF8.GetString(decodedBytes);
+
+        var result = await _userManager.ConfirmEmailAsync(user, decodedToken);
         if (!result.Succeeded)
         {
             _logger.LogError("Email confirmation failed for user ID: {UserId}, Errors: {Errors}", request.UserId, result.Errors);
@@ -218,7 +222,10 @@ public class AuthServices(
             return UserError.UserNotFound;
         }
 
-        var result = await _userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
+        var decodedBytes = WebEncoders.Base64UrlDecode(request.Token);
+        var decodedToken = Encoding.UTF8.GetString(decodedBytes);
+
+        var result = await _userManager.ResetPasswordAsync(user, decodedToken, request.NewPassword);
         if (!result.Succeeded)
         {
             _logger.LogError("Password reset failed for user ID: {UserId}, Errors: {Errors}", request.UserId, result.Errors);
@@ -311,10 +318,14 @@ public class AuthServices(
         var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
         _logger.LogInformation("Generated email confirmation token for user: {Email}", user.Email);
 
-        var encodedToken = HttpUtility.UrlEncode(token);
+        var tokenBytes = Encoding.UTF8.GetBytes(token);
+        var encodedToken = WebEncoders.Base64UrlEncode(tokenBytes);
+
         var confirmationLink = _httpContextAccessor.HttpContext != null
-            ? _httpContextAccessor.HttpContext.Request.PathBase + "/api/auth/confirm-email?UserId=" + user.Id + "&Token=" + token
+            ? $"{_httpContextAccessor.HttpContext.Request.Scheme}://{_httpContextAccessor.HttpContext.Request.Host}/api/auth/confirm-email?UserId={user.Id}&Token={encodedToken}"
             : throw new InvalidOperationException("HttpContext is not available");
+
+
         _logger.LogInformation("Generated confirmation link: {ConfirmationLink}", confirmationLink);
 
         var emailBody = $@"<h2>مرحبًا {user.UserName}</h2>
@@ -335,8 +346,11 @@ public class AuthServices(
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
         _logger.LogInformation("Generated password reset token for user: {Email}", user.Email);
 
+        var tokenBytes = Encoding.UTF8.GetBytes(token);
+        var encodedToken = WebEncoders.Base64UrlEncode(tokenBytes);
+
         var resetLink = _httpContextAccessor.HttpContext != null
-            ? _httpContextAccessor.HttpContext.Request.PathBase + "/api/auth/resetpassword?userId=" + user.Id + "&token=" + token
+            ? $"{_httpContextAccessor.HttpContext.Request.Scheme}://{_httpContextAccessor.HttpContext.Request.Host}/api/auth/resetpassword?userId={user.Id}&token={encodedToken}"
             : throw new InvalidOperationException("HttpContext is not available");
         _logger.LogInformation("Generated password reset link: {ResetLink}", resetLink);
 
@@ -353,14 +367,22 @@ public class AuthServices(
     private async Task<AuthResponse> GenerateResponse(ApplicationUser user)
     {
         _logger.LogInformation("Generating authentication response for user: {Username}", user.UserName);
-        var role = await _context.UserRoles.FirstOrDefaultAsync(x => x.UserId == user.Id);
-        
+        var roles= await _userManager.GetRolesAsync(user);
+        var roleName = roles.FirstOrDefault();
+
+        var role =roleName is not null
+            ? await _context.Roles.FirstOrDefaultAsync(x => x.Name == roleName)
+            : null;
+
         var permissions=await _context.RoleClaims
-            .Where(x => x.RoleId == role!.RoleId)
+            .Where(x => x.RoleId == role!.Id)
             .Select(x => x.ClaimValue)
             .ToListAsync();
 
         var userData = _mapper.Map<UserData>(user);
+        userData.Permissions = permissions!;
+        userData.Role = role?.Name??string.Empty;
+        userData.ProfilePictureUrl = $"{_httpContextAccessor.HttpContext!.Request.Scheme}://{_httpContextAccessor.HttpContext.Request.Host}/{user.ProfilePictureUrl}";
         var generateTokenResult = GenerateToken(user,permissions!);
         var tokenData = new TokenData
         {
@@ -401,24 +423,25 @@ public class AuthServices(
     }
 
     // implement method to save image in local and return the path of the image
-    private async Task<string?> SaveImageToLocal(IFormFile imageFile)
+    private static async Task<string?> SaveImageToLocal(IFormFile imageFile)
     {
         if (imageFile != null && imageFile.Length > 0)
         {
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images");
+            var uploadsFolder = "wwwroot/images";
 
             if (!Directory.Exists(uploadsFolder))
                 Directory.CreateDirectory(uploadsFolder);
 
             // Generate a unique file name to avoid overwriting
             var uniqueFileName = $"{Guid.NewGuid().ToString()}_{imageFile.FileName}";
-            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+            var filePath = Path.Combine(uploadsFolder, uniqueFileName)
+                .Replace("\\","/").Replace(" ","");
 
             // Save the file to the local directory
             using (var fileStream = new FileStream(filePath, FileMode.Create))
                 await imageFile.CopyToAsync(fileStream);
 
-            return filePath;
+            return filePath.Replace("wwwroot/", "");
         }
         return null;
     }
