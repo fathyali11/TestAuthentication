@@ -28,5 +28,12 @@ public class RegisterRequestValidator:AbstractValidator<RegisterRequest>
             .Matches(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).{6,}$")
             .WithMessage("Password must be at least 6 characters long, contain an uppercase letter, a lowercase letter, a number, and a special character.");
 
+        RuleFor(x => x.ProfilePicture)
+            .NotNull()
+            .WithMessage("Profile picture is required")
+            .Must(file => file.Length > 0)
+            .WithMessage("Profile picture cannot be empty")
+            .Must(file => file.ContentType == "image/jpeg" || file.ContentType == "image/png")
+            .WithMessage("Profile picture must be a JPEG or PNG image");
     }
 }

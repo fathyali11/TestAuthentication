@@ -4,5 +4,6 @@ public record RegisterRequest(
     string UserName,
     string Email,
     string Address,
-    string Password
+    string Password,
+    IFormFile ProfilePicture
 );
