@@ -51,6 +51,10 @@ public class BlobStorageServices(IConfiguration _configuration,
         var containerClient = _blobServiceClient.GetBlobContainerClient(_containerName);
         await containerClient.CreateIfNotExistsAsync();
         var blobClient = containerClient.GetBlobClient(existingFileName);
+
+        if(!string.IsNullOrEmpty(existingFileName))
+            await DeleteFileAsync(existingFileName);
+
         if (await blobClient.ExistsAsync())
         {
             using var fileStream = file.OpenReadStream();
