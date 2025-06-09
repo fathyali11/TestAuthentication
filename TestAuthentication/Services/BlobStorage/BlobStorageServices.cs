@@ -48,23 +48,7 @@ public class BlobStorageServices(IConfiguration _configuration,
     }
     public async Task UpdateFileAsync(IFormFile file, string existingFileName)
     {
-        var containerClient = _blobServiceClient.GetBlobContainerClient(_containerName);
-        await containerClient.CreateIfNotExistsAsync();
-        var blobClient = containerClient.GetBlobClient(existingFileName);
-
-        if(!string.IsNullOrEmpty(existingFileName))
-            await DeleteFileAsync(existingFileName);
-
-        if (await blobClient.ExistsAsync())
-        {
-            using var fileStream = file.OpenReadStream();
-            await blobClient.UploadAsync(fileStream, overwrite: true);
-            _logger.LogInformation("File {FileName} updated successfully in blob storage.", existingFileName);
-        }
-        else
-        {
-            _logger.LogWarning("File {FileName} does not exist in the blob storage.", existingFileName);
-            throw new FileNotFoundException($"File {existingFileName} not found in blob storage.");
-        }
+        await DeleteFileAsync(existingFileName);
+        await UploadFileAsync(file);
     }
 }
