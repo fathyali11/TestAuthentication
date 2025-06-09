@@ -382,7 +382,9 @@ public class AuthServices(
         var userData = _mapper.Map<UserData>(user);
         userData.Permissions = permissions!;
         userData.Role = role?.Name??string.Empty;
-        userData.ProfilePictureUrl = $"{_httpContextAccessor.HttpContext!.Request.Scheme}://{_httpContextAccessor.HttpContext.Request.Host}/{user.ProfilePictureUrl}";
+        var indexOf=user.ProfilePictureUrl.IndexOf("/images", StringComparison.OrdinalIgnoreCase);
+        var profilePicturePath = user.ProfilePictureUrl.Substring(indexOf);
+        userData.ProfilePictureUrl = $"{_httpContextAccessor.HttpContext!.Request.Scheme}://{_httpContextAccessor.HttpContext.Request.Host}/{profilePicturePath}";
         var generateTokenResult = GenerateToken(user,permissions!);
         var tokenData = new TokenData
         {
@@ -427,7 +429,7 @@ public class AuthServices(
     {
         if (imageFile != null && imageFile.Length > 0)
         {
-            var uploadsFolder = "wwwroot/images";
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images");
 
             if (!Directory.Exists(uploadsFolder))
                 Directory.CreateDirectory(uploadsFolder);
@@ -441,7 +443,7 @@ public class AuthServices(
             using (var fileStream = new FileStream(filePath, FileMode.Create))
                 await imageFile.CopyToAsync(fileStream);
 
-            return filePath.Replace("wwwroot/", "");
+            return filePath;
         }
         return null;
     }
