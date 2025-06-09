@@ -17,7 +17,9 @@ public class UserService(IValidator<ChangePasswordRequest> _changePasswordReques
     UserManager<ApplicationUser> _userManager,
     ILogger<UserService> _logger,
     IValidator<UpdateProfileRequest> _updateProfileRequestValidator,
-    ValidationService _validationService,IMapper _mapper):IUserService
+    ValidationService _validationService,IMapper _mapper,
+    IHttpContextAccessor _httpContextAccessor,
+    IValidator<UpdateProfilePictureRequest> _updateProfilePictureRequest) :IUserService
 {
     public async Task<OneOf<List<ValidationError>, bool, Error>> ChangePasswordAsync(string userId,ChangePasswordRequest request,CancellationToken cancellationToken=default)
     {
@@ -81,6 +83,43 @@ public class UserService(IValidator<ChangePasswordRequest> _changePasswordReques
             return UserError.UserNotFound;
         }
         _logger.LogInformation("Current user retrieved successfully with ID {UserId} and email {Email}", userId, user.Email);
-        return user.Adapt<CurrentUserProfileResponse>();
+
+        var indexOf = user.ProfilePictureUrl.IndexOf("/images", StringComparison.OrdinalIgnoreCase);
+        var profilePicturePath = user.ProfilePictureUrl.Substring(indexOf);
+        var profilePictureUrl = $"{_httpContextAccessor.HttpContext!.Request.Scheme}://{_httpContextAccessor.HttpContext.Request.Host}/{profilePicturePath}";
+        var response= _mapper.Map<CurrentUserProfileResponse>(user);
+        response.ProfilePictureUrl = profilePictureUrl;
+        return response;
     }
+    public async Task<OneOf<List<ValidationError>, bool, Error>> UpdateProfilePictureAsync(string userId, UpdateProfilePictureRequest request, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Updating profile picture for user with ID {UserId}", userId);
+        var validationResult = await _validationService.ValidateRequest(_updateProfilePictureRequest, request);
+        if (validationResult is not null)
+        {
+            _logger.LogWarning("Validation failed for update profile picture: {Errors}", validationResult);
+            return validationResult;
+        }
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null)
+        {
+            _logger.LogWarning("User with ID {UserId} not found", userId);
+            return UserError.UserNotFound;
+        }
+        
+        _validationService.RemoveOldProfilePictureAsync(user.ProfilePictureUrl, cancellationToken);
+        user.ProfilePictureUrl = await _validationService.SaveImageToLocal(request.ProfilePicture)??string.Empty;
+
+
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+        {
+            _logger.LogWarning("Failed to update profile picture for user with ID {UserId}: {Errors}", userId, result.Errors);
+            return UserError.ServerError;
+        }
+        
+        _logger.LogInformation("Profile picture updated successfully for user with ID {UserId}", userId);
+        return true;
+    }
+    
 }

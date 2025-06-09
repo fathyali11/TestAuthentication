@@ -38,7 +38,6 @@ public class UserController(IUserService _userService) : ControllerBase
         );
     }
 
-
     [HasPermission(CustomerRoleAndPermissions.CanViewUserProfile)]
     [HttpGet("current-user")]
     public async Task<IActionResult> GetCurrentUser(CancellationToken cancellationToken = default)
@@ -51,5 +50,16 @@ public class UserController(IUserService _userService) : ControllerBase
         );
     }
 
-
+    [HasPermission(CustomerRoleAndPermissions.CanEditUserProfile)]
+    [HttpPut("update-profile-picture")]
+    public async Task<IActionResult> UpdateProfilePicture([FromForm] UpdateProfilePictureRequest request, CancellationToken cancellationToken = default)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var result = await _userService.UpdateProfilePictureAsync(userId!, request, cancellationToken);
+        return result.Match<IActionResult>(
+            errors => BadRequest(errors),
+            success => Ok(),
+            error => BadRequest(error)
+        );
+    }
 }
