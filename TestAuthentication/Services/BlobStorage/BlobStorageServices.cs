@@ -11,7 +11,7 @@ public class BlobStorageServices(IConfiguration _configuration,
     {
         var containerClient = _blobServiceClient.GetBlobContainerClient(_containerName);
         await containerClient.CreateIfNotExistsAsync();
-        var blobClient = containerClient.GetBlobClient(file.FileName);
+        var blobClient = containerClient.GetBlobClient(file.FileName.Replace(" ",""));
 
         using var fileStream = file.OpenReadStream();
 
