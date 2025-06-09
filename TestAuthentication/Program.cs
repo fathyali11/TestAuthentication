@@ -15,6 +15,7 @@ using TestAuthentication.DTOS.Requests;
 using TestAuthentication.Mappings;
 using TestAuthentication.Models;
 using TestAuthentication.Services.AuthService;
+using TestAuthentication.Services.BlobStorage;
 using TestAuthentication.Services.EmailServices;
 using TestAuthentication.Services.General;
 using TestAuthentication.Services.UserServices;
@@ -125,6 +126,7 @@ builder.Services.AddScoped<IValidator<UpdateProfileRequest>, UpdateProfileReques
 builder.Services.AddScoped<IValidator<UpdateProfilePictureRequest>, UpdateProfilePictureRequestValidator>();
 //builder.Services.AddHostedService<DataSeederHostedService>();
 
+builder.Services.AddScoped<BlobStorageServices>();
 builder.Services.AddHangfire(config => config
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
     .UseSimpleAssemblyNameTypeSerializer()
