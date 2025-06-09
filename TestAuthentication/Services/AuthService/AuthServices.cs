@@ -22,6 +22,7 @@ using TestAuthentication.DTOS.General;
 using TestAuthentication.DTOS.Requests;
 using TestAuthentication.DTOS.Responses;
 using TestAuthentication.Models;
+using TestAuthentication.Services.BlobStorage;
 using TestAuthentication.Services.EmailServices;
 using TestAuthentication.Services.General;
 
@@ -43,7 +44,7 @@ public class AuthServices(
     ILogger<AuthServices> _logger,
     RoleManager<IdentityRole> _roleManager,
     ApplicationDbContext _context,
-    ValidationService _validationService
+    BlobStorageServices _blobStorageServices
 ) : IAuthServices
 {
     private readonly JwtConfig _jwtConfig = options.Value;
@@ -69,13 +70,8 @@ public class AuthServices(
 
         _logger.LogInformation("Creating new user with email: {Email}", request.Email);
         var user = request.Adapt<ApplicationUser>();
-        var profilePictureUrl = await _validationService.SaveImageToLocal(request.ProfilePicture);
-        if(profilePictureUrl is null)
-        {
-            _logger.LogError("Failed to save profile picture for user: {Email}", request.Email);
-            return UserError.ServerError;
-        }
-        user.ProfilePictureUrl = profilePictureUrl;
+
+        await _blobStorageServices.UploadFileAsync(request.ProfilePicture);
         var result = await _userManager.CreateAsync(user, request.Password);
         if (!result.Succeeded)
         {
@@ -384,9 +380,10 @@ public class AuthServices(
         var userData = _mapper.Map<UserData>(user);
         userData.Permissions = permissions!;
         userData.Role = role?.Name??string.Empty;
-        var indexOf=user.ProfilePictureUrl.IndexOf("/images", StringComparison.OrdinalIgnoreCase);
-        var profilePicturePath = user.ProfilePictureUrl.Substring(indexOf);
-        userData.ProfilePictureUrl = $"{_httpContextAccessor.HttpContext!.Request.Scheme}://{_httpContextAccessor.HttpContext.Request.Host}/{profilePicturePath}";
+   
+        var pictureUrl= await _blobStorageServices.GetFileUrlAsync(user.ProfilePictureUrl);
+        userData.ProfilePictureUrl = pictureUrl.Replace(" ","");
+
         var generateTokenResult = GenerateToken(user,permissions!);
         var tokenData = new TokenData
         {
