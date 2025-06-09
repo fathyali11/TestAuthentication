@@ -12,5 +12,6 @@ public class UserMapping
         TypeAdapterConfig<ApplicationUser, UserData>.NewConfig();
         TypeAdapterConfig<RegisterRequest, ApplicationUser>.NewConfig();
         TypeAdapterConfig<UpdateProfileRequest, ApplicationUser>.NewConfig();
+        TypeAdapterConfig<ApplicationUser, CurrentUserProfileResponse>.NewConfig();
     }
 }

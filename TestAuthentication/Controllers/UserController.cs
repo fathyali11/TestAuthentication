@@ -13,7 +13,7 @@ public class UserController(IUserService _userService) : ControllerBase
 {
 
     [HasPermission(CustomerRoleAndPermissions.CanEditUserProfile)]
-    [HttpPost("change-password")]
+    [HttpPut("change-password")]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken cancellationToken = default)
     {
         var userId=User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -38,6 +38,18 @@ public class UserController(IUserService _userService) : ControllerBase
         );
     }
 
+
+    [HasPermission(CustomerRoleAndPermissions.CanViewUserProfile)]
+    [HttpGet("current-user")]
+    public async Task<IActionResult> GetCurrentUser(CancellationToken cancellationToken = default)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var result = await _userService.GetCurrentUserAsync(userId!, cancellationToken);
+        return result.Match<IActionResult>(
+            userProfile => Ok(userProfile),
+            error => BadRequest(error)
+        );
+    }
 
 
 }

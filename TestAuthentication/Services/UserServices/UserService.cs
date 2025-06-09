@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using Mapster;
 using MapsterMapper;
 using Microsoft.AspNetCore.Identity;
 using OneOf;
@@ -6,6 +7,7 @@ using TestAuthentication.Constants.Errors;
 using TestAuthentication.CustomValidations;
 using TestAuthentication.DTOS.General;
 using TestAuthentication.DTOS.Requests;
+using TestAuthentication.DTOS.Responses;
 using TestAuthentication.Models;
 using TestAuthentication.Services.General;
 
@@ -69,4 +71,16 @@ public class UserService(IValidator<ChangePasswordRequest> _changePasswordReques
         return true;
     }
 
+    public async Task<OneOf<CurrentUserProfileResponse, Error>> GetCurrentUserAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Retrieving current user with ID {UserId}", userId);
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null)
+        {
+            _logger.LogWarning("User with ID {UserId} not found", userId);
+            return UserError.UserNotFound;
+        }
+        _logger.LogInformation("Current user retrieved successfully with ID {UserId} and email {Email}", userId, user.Email);
+        return user.Adapt<CurrentUserProfileResponse>();
+    }
 }
