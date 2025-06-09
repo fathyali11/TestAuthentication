@@ -19,7 +19,6 @@ public class UserService(IValidator<ChangePasswordRequest> _changePasswordReques
     ILogger<UserService> _logger,
     IValidator<UpdateProfileRequest> _updateProfileRequestValidator,
     ValidationService _validationService,IMapper _mapper,
-    IHttpContextAccessor _httpContextAccessor,
     IValidator<UpdateProfilePictureRequest> _updateProfilePictureRequest,
     BlobStorageServices _blobStorageServices) :IUserService
 {
