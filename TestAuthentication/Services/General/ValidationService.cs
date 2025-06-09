@@ -26,4 +26,39 @@ public class ValidationService(ILogger<ValidationService> _logger)
         _logger.LogInformation("Validation successful for request type: {RequestType}", typeof(TRequest).Name);
         return null;
     }
+
+    public async Task<string?> SaveImageToLocal(IFormFile imageFile)
+    {
+        if (imageFile != null && imageFile.Length > 0)
+        {
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images");
+
+            if (!Directory.Exists(uploadsFolder))
+                Directory.CreateDirectory(uploadsFolder);
+
+            // Generate a unique file name to avoid overwriting
+            var uniqueFileName = $"{Guid.NewGuid().ToString()}_{imageFile.FileName}";
+            var filePath = Path.Combine(uploadsFolder, uniqueFileName)
+                .Replace("\\", "/").Replace(" ", "");
+
+            // Save the file to the local directory
+            using (var fileStream = new FileStream(filePath, FileMode.Create))
+                await imageFile.CopyToAsync(fileStream);
+
+            return filePath;
+        }
+        return null;
+    }
+
+    public void RemoveOldProfilePictureAsync(string oldPicturePath, CancellationToken cancellationToken = default)
+    {
+        if (!string.IsNullOrEmpty(oldPicturePath))
+        {
+            if (File.Exists(oldPicturePath))
+            {
+                File.Delete(oldPicturePath);
+                _logger.LogInformation("Old profile picture removed successfully ");
+            }
+        }
+    }
 }

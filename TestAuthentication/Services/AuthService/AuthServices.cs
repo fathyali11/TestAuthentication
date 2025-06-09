@@ -23,6 +23,7 @@ using TestAuthentication.DTOS.Requests;
 using TestAuthentication.DTOS.Responses;
 using TestAuthentication.Models;
 using TestAuthentication.Services.EmailServices;
+using TestAuthentication.Services.General;
 
 namespace TestAuthentication.Services.AuthService;
 
@@ -41,7 +42,8 @@ public class AuthServices(
     IValidator<AddToRoleRequest> _addToRoleRequestValidator,
     ILogger<AuthServices> _logger,
     RoleManager<IdentityRole> _roleManager,
-    ApplicationDbContext _context
+    ApplicationDbContext _context,
+    ValidationService _validationService
 ) : IAuthServices
 {
     private readonly JwtConfig _jwtConfig = options.Value;
@@ -67,7 +69,7 @@ public class AuthServices(
 
         _logger.LogInformation("Creating new user with email: {Email}", request.Email);
         var user = request.Adapt<ApplicationUser>();
-        var profilePictureUrl = await SaveImageToLocal(request.ProfilePicture);
+        var profilePictureUrl = await _validationService.SaveImageToLocal(request.ProfilePicture);
         if(profilePictureUrl is null)
         {
             _logger.LogError("Failed to save profile picture for user: {Email}", request.Email);
@@ -424,27 +426,5 @@ public class AuthServices(
         return null;
     }
 
-    // implement method to save image in local and return the path of the image
-    private static async Task<string?> SaveImageToLocal(IFormFile imageFile)
-    {
-        if (imageFile != null && imageFile.Length > 0)
-        {
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images");
-
-            if (!Directory.Exists(uploadsFolder))
-                Directory.CreateDirectory(uploadsFolder);
-
-            // Generate a unique file name to avoid overwriting
-            var uniqueFileName = $"{Guid.NewGuid().ToString()}_{imageFile.FileName}";
-            var filePath = Path.Combine(uploadsFolder, uniqueFileName)
-                .Replace("\\","/").Replace(" ","");
-
-            // Save the file to the local directory
-            using (var fileStream = new FileStream(filePath, FileMode.Create))
-                await imageFile.CopyToAsync(fileStream);
-
-            return filePath;
-        }
-        return null;
-    }
+    
 }

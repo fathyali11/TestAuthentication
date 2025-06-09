@@ -122,6 +122,7 @@ builder.Services.AddScoped<IValidator<AddToRoleRequest>, AddToRoleRequestValidat
 builder.Services.AddScoped<IValidator<ChangePasswordRequest>, ChangePasswordRequestValidator>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IValidator<UpdateProfileRequest>, UpdateProfileRequestValidator>();
+builder.Services.AddScoped<IValidator<UpdateProfilePictureRequest>, UpdateProfilePictureRequestValidator>();
 //builder.Services.AddHostedService<DataSeederHostedService>();
 
 builder.Services.AddHangfire(config => config
