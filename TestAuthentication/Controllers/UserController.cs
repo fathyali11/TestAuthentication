@@ -19,9 +19,25 @@ public class UserController(IUserService _userService) : ControllerBase
         var userId=User.FindFirstValue(ClaimTypes.NameIdentifier);
         var result = await _userService.ChangePasswordAsync(userId!,request, cancellationToken);
         return result.Match<IActionResult>(
-            success => Ok(new { Message = "Password changed successfully" }),
             errors => BadRequest(errors),
-            error => StatusCode(500, error)
+            success => Ok(),
+            error => BadRequest(error)
         );
     }
+
+    [HasPermission(CustomerRoleAndPermissions.CanEditUserProfile)]
+    [HttpPut("update-profile")]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request, CancellationToken cancellationToken = default)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var result = await _userService.UpdateProfileAsync(userId!, request, cancellationToken);
+        return result.Match<IActionResult>(
+            errors => BadRequest(errors),
+            success => Ok(),
+            error => BadRequest(error)
+        );
+    }
+
+
+
 }
