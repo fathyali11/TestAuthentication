@@ -15,6 +15,7 @@ using TestAuthentication.Services.General;
 namespace TestAuthentication.Services.UserServices;
 
 public class UserService(IValidator<ChangePasswordRequest> _changePasswordRequestValidator,
+    IValidator<ChangeStatusOfUserAccountRequest> _changeStatusOfUserAccountRequestValidator,
     UserManager<ApplicationUser> _userManager,
     ILogger<UserService> _logger,
     IValidator<UpdateProfileRequest> _updateProfileRequestValidator,
@@ -119,5 +120,35 @@ public class UserService(IValidator<ChangePasswordRequest> _changePasswordReques
         _logger.LogInformation("Profile picture updated successfully for user with ID {UserId}", userId);
         return true;
     }
-    
+
+    // method for disable user account
+
+    public async Task<OneOf<List<ValidationError>,bool, Error>> ChangeStatusOfUserAccountAsync(ChangeStatusOfUserAccountRequest request, CancellationToken cancellationToken = default)
+    {
+        var validationResult = await _validationService.ValidateRequest(_changeStatusOfUserAccountRequestValidator, request);
+        if (validationResult is not null)
+        {
+            _logger.LogWarning("Validation failed for change status of user account: {Errors}", validationResult);
+            return validationResult;
+        }
+        _logger.LogInformation("Change status of user account with Email {Email}", request.Email);
+        var user = await _userManager.FindByEmailAsync(request.Email);
+        if (user is null)
+        {
+            _logger.LogWarning("User with Email {Email} not found", request.Email);
+            return UserError.UserNotFound;
+        }
+
+        user.IsEnable = !user.IsEnable;
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+        {
+            _logger.LogWarning("Failed to change status of user account with Email {Email}: {Errors}", request.Email, result.Errors);
+            return UserError.ServerError;
+        }
+        
+        _logger.LogInformation("User account with Email {Email} disabled successfully", request.Email);
+        return true;
+    }
+
 }

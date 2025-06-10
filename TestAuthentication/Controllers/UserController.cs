@@ -62,4 +62,16 @@ public class UserController(IUserService _userService) : ControllerBase
             error => BadRequest(error)
         );
     }
+
+    [HasPermission(AdminRoleAndPermissions.CanEditUser)]
+    [HttpPut("change-status")]
+    public async Task<IActionResult> ChangeStatusOfUserAccount(ChangeStatusOfUserAccountRequest request,CancellationToken cancellationToken = default)
+    {
+        var result = await _userService.ChangeStatusOfUserAccountAsync(request, cancellationToken);
+        return result.Match<IActionResult>(
+            errors => BadRequest(errors),
+            success => Ok(),
+            error => BadRequest(error)
+        );
+    }
 }

@@ -12,4 +12,6 @@ public static class UserError
     public static readonly Error TokenExpired = new("TokenExpired", "Token expired", 401);
     public static readonly Error ServerError = new("ServerError", "Internal server error", StatusCodes.Status500InternalServerError);
     public static readonly Error NotConfirmed = new("NotConfirmed", "Email not confirmed", StatusCodes.Status401Unauthorized);
+    public static readonly Error NotActive = new("NotActive", "User is not enable", StatusCodes.Status401Unauthorized);
+
 }
