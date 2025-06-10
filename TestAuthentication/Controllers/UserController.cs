@@ -81,4 +81,16 @@ public class UserController(IUserService _userService) : ControllerBase
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         return Ok(await _userService.GetAllUsersAsync(userId!, cancellationToken));
     }
+
+    [HasPermission(AdminRoleAndPermissions.CanEditUser)]
+    [HttpPut("add-to-role")]
+    public async Task<IActionResult> AddToRole(AddToRoleRequest request, CancellationToken cancellationToken = default)
+    {
+        var result = await _userService.AddToRoleAsync(request, cancellationToken);
+        return result.Match<IActionResult>(
+            errors => BadRequest(errors),
+            success => Ok(),
+            error => BadRequest(error)
+        );
+    }
 }

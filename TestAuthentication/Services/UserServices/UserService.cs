@@ -18,6 +18,7 @@ namespace TestAuthentication.Services.UserServices;
 
 public class UserService(IValidator<ChangePasswordRequest> _changePasswordRequestValidator,
     IValidator<ChangeStatusOfUserAccountRequest> _changeStatusOfUserAccountRequestValidator,
+    IValidator<AddToRoleRequest> _addToRoleRequestValidator,
     UserManager<ApplicationUser> _userManager,
     ILogger<UserService> _logger,
     IValidator<UpdateProfileRequest> _updateProfileRequestValidator,
@@ -181,7 +182,42 @@ public class UserService(IValidator<ChangePasswordRequest> _changePasswordReques
         return response;
     }
 
+    public async Task<OneOf<List<ValidationError>, bool, Error>> AddToRoleAsync(AddToRoleRequest request,CancellationToken cancellationToken=default)
+    {
+        var validationResult = await _validationService.ValidateRequest(_addToRoleRequestValidator, request);
+        if (validationResult is not null)
+        {
+            _logger.LogWarning("Validation failed for change status of user account: {Errors}", validationResult);
+            return validationResult;
+        }
 
+        var user = await _userManager.FindByEmailAsync(request.Email);
+        if(user is null)
+        {
+            _logger.LogWarning("User with Email {Email} not found", request.Email);
+            return UserError.UserNotFound;
+        }
+        var roles = await _userManager.GetRolesAsync(user);
+        var roleName = roles.FirstOrDefault();
+        if (string.Equals(roleName, request.RoleName, StringComparison.OrdinalIgnoreCase))
+            return true;
+        var removeFromRoleResult=await _userManager.RemoveFromRoleAsync(user, roleName!);
+        if (!removeFromRoleResult.Succeeded)
+        {
+            _logger.LogError("cann't remove user with email {Email} from role with name {RoleName}", request.Email, roleName);
+            return UserError.ServerError;
+        }
+        var addToRoleResult = await _userManager.AddToRoleAsync(user, request.RoleName);
+        if(!addToRoleResult.Succeeded)
+        {
+            _logger.LogError("cann't add user with email {Email} to role with name {RoleName}", request.Email, request.RoleName);
+            return UserError.ServerError;
+        }
+
+        // add logs successful
+        _logger.LogInformation("add user with email {Email} to role with name {RoleName} succesfully", request.Email, request.RoleName);
+        return true;
+    }
 
 
 
