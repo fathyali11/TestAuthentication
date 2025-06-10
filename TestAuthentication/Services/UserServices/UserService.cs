@@ -2,9 +2,11 @@
 using Mapster;
 using MapsterMapper;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using OneOf;
 using TestAuthentication.Constants.Errors;
 using TestAuthentication.CustomValidations;
+using TestAuthentication.Data;
 using TestAuthentication.DTOS.General;
 using TestAuthentication.DTOS.Requests;
 using TestAuthentication.DTOS.Responses;
@@ -21,7 +23,8 @@ public class UserService(IValidator<ChangePasswordRequest> _changePasswordReques
     IValidator<UpdateProfileRequest> _updateProfileRequestValidator,
     ValidationService _validationService,IMapper _mapper,
     IValidator<UpdateProfilePictureRequest> _updateProfilePictureRequest,
-    BlobStorageServices _blobStorageServices) :IUserService
+    BlobStorageServices _blobStorageServices,
+    ApplicationDbContext _context) :IUserService
 {
     public async Task<OneOf<List<ValidationError>, bool, Error>> ChangePasswordAsync(string userId,ChangePasswordRequest request,CancellationToken cancellationToken=default)
     {
@@ -151,4 +154,35 @@ public class UserService(IValidator<ChangePasswordRequest> _changePasswordReques
         return true;
     }
 
+    // method for return all customers
+    public async Task<IEnumerable<AdminUsersProfileResponse>> GetAllUsersAsync(string userId,CancellationToken cancellationToken = default)
+    {
+        var data = await (from user in _context.Users.AsNoTracking()
+                              join userRole in _context.UserRoles.AsNoTracking() on user.Id equals userRole.UserId
+                              join role in _context.Roles.AsNoTracking() on userRole.RoleId equals role.Id
+                              where user.Id != userId
+                              select new AdminUsersProfileResponse
+                              {
+                                  UserName=user.UserName!,
+                                  Email=user.Email!,
+                                  ProfilePictureUrl=user.ProfilePictureUrl,
+                                  Address=user.Address,
+                                  IsActive=user.IsEnable,
+                                  CreatedAt=user.CreatedAt,
+                                  Role=role.Name!
+                              }
+                           ).ToListAsync(cancellationToken);
+
+            var response=await Task.WhenAll(data.Select(async user=>new AdminUsersProfileResponse
+            {
+                UserName = user.UserName,
+                Email = user.Email,
+                ProfilePictureUrl = await _blobStorageServices.GetFileUrlAsync(user.ProfilePictureUrl),
+                IsActive = user.IsActive,
+                Address = user.Address,
+                CreatedAt = user.CreatedAt,
+                Role = user.Role
+            }));
+        return response;
+    }
 }

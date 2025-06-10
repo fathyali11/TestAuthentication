@@ -74,4 +74,11 @@ public class UserController(IUserService _userService) : ControllerBase
             error => BadRequest(error)
         );
     }
+    [HasPermission(AdminRoleAndPermissions.CanViewUser)]
+    [HttpGet("all-users")]
+    public async Task<ActionResult> GetAllUsers(CancellationToken cancellationToken=default)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Ok(await _userService.GetAllUsersAsync(userId!, cancellationToken));
+    }
 }
