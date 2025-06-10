@@ -123,9 +123,6 @@ public class UserService(IValidator<ChangePasswordRequest> _changePasswordReques
         _logger.LogInformation("Profile picture updated successfully for user with ID {UserId}", userId);
         return true;
     }
-
-    // method for disable user account
-
     public async Task<OneOf<List<ValidationError>,bool, Error>> ChangeStatusOfUserAccountAsync(ChangeStatusOfUserAccountRequest request, CancellationToken cancellationToken = default)
     {
         var validationResult = await _validationService.ValidateRequest(_changeStatusOfUserAccountRequestValidator, request);
@@ -153,8 +150,6 @@ public class UserService(IValidator<ChangePasswordRequest> _changePasswordReques
         _logger.LogInformation("User account with Email {Email} disabled successfully", request.Email);
         return true;
     }
-
-    // method for return all customers
     public async Task<IEnumerable<AdminUsersProfileResponse>> GetAllUsersAsync(string userId,CancellationToken cancellationToken = default)
     {
         var data = await (from user in _context.Users.AsNoTracking()
@@ -185,4 +180,15 @@ public class UserService(IValidator<ChangePasswordRequest> _changePasswordReques
             }));
         return response;
     }
+
+
+
+
+
+
+
+
+
+
 }
+
