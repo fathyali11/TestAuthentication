@@ -109,6 +109,12 @@ public class AuthServices(
             return UserError.NotConfirmed;
         }
 
+        if(!user.IsEnable)
+        {
+            _logger.LogWarning("User is not active: {Username}", request.Username);
+            return UserError.NotActive;
+        }
+
         var isPasswordValid = await _userManager.CheckPasswordAsync(user, request.Password);
         if (!isPasswordValid)
         {
@@ -136,6 +142,12 @@ public class AuthServices(
         if (user is null)
         {
             _logger.LogWarning("User not found with ID: {UserId}", request.UserId);
+            return true;
+        }
+
+        if (user.EmailConfirmed)
+        {
+            _logger.LogInformation("Email already confirmed for user ID: {UserId}", request.UserId);
             return true;
         }
 

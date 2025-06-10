@@ -62,4 +62,35 @@ public class UserController(IUserService _userService) : ControllerBase
             error => BadRequest(error)
         );
     }
+
+    [HasPermission(AdminRoleAndPermissions.CanEditUser)]
+    [HttpPut("change-status")]
+    public async Task<IActionResult> ChangeStatusOfUserAccount(ChangeStatusOfUserAccountRequest request,CancellationToken cancellationToken = default)
+    {
+        var result = await _userService.ChangeStatusOfUserAccountAsync(request, cancellationToken);
+        return result.Match<IActionResult>(
+            errors => BadRequest(errors),
+            success => Ok(),
+            error => BadRequest(error)
+        );
+    }
+    [HasPermission(AdminRoleAndPermissions.CanViewUser)]
+    [HttpGet("all-users")]
+    public async Task<ActionResult> GetAllUsers(CancellationToken cancellationToken=default)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Ok(await _userService.GetAllUsersAsync(userId!, cancellationToken));
+    }
+
+    [HasPermission(AdminRoleAndPermissions.CanEditUser)]
+    [HttpPut("add-to-role")]
+    public async Task<IActionResult> AddToRole(AddToRoleRequest request, CancellationToken cancellationToken = default)
+    {
+        var result = await _userService.AddToRoleAsync(request, cancellationToken);
+        return result.Match<IActionResult>(
+            errors => BadRequest(errors),
+            success => Ok(),
+            error => BadRequest(error)
+        );
+    }
 }

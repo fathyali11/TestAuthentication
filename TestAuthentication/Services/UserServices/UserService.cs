@@ -2,9 +2,11 @@
 using Mapster;
 using MapsterMapper;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using OneOf;
 using TestAuthentication.Constants.Errors;
 using TestAuthentication.CustomValidations;
+using TestAuthentication.Data;
 using TestAuthentication.DTOS.General;
 using TestAuthentication.DTOS.Requests;
 using TestAuthentication.DTOS.Responses;
@@ -15,13 +17,15 @@ using TestAuthentication.Services.General;
 namespace TestAuthentication.Services.UserServices;
 
 public class UserService(IValidator<ChangePasswordRequest> _changePasswordRequestValidator,
+    IValidator<ChangeStatusOfUserAccountRequest> _changeStatusOfUserAccountRequestValidator,
+    IValidator<AddToRoleRequest> _addToRoleRequestValidator,
     UserManager<ApplicationUser> _userManager,
     ILogger<UserService> _logger,
     IValidator<UpdateProfileRequest> _updateProfileRequestValidator,
     ValidationService _validationService,IMapper _mapper,
-    IHttpContextAccessor _httpContextAccessor,
     IValidator<UpdateProfilePictureRequest> _updateProfilePictureRequest,
-    BlobStorageServices _blobStorageServices) :IUserService
+    BlobStorageServices _blobStorageServices,
+    ApplicationDbContext _context) :IUserService
 {
     public async Task<OneOf<List<ValidationError>, bool, Error>> ChangePasswordAsync(string userId,ChangePasswordRequest request,CancellationToken cancellationToken=default)
     {
@@ -120,5 +124,107 @@ public class UserService(IValidator<ChangePasswordRequest> _changePasswordReques
         _logger.LogInformation("Profile picture updated successfully for user with ID {UserId}", userId);
         return true;
     }
-    
+    public async Task<OneOf<List<ValidationError>,bool, Error>> ChangeStatusOfUserAccountAsync(ChangeStatusOfUserAccountRequest request, CancellationToken cancellationToken = default)
+    {
+        var validationResult = await _validationService.ValidateRequest(_changeStatusOfUserAccountRequestValidator, request);
+        if (validationResult is not null)
+        {
+            _logger.LogWarning("Validation failed for change status of user account: {Errors}", validationResult);
+            return validationResult;
+        }
+        _logger.LogInformation("Change status of user account with Email {Email}", request.Email);
+        var user = await _userManager.FindByEmailAsync(request.Email);
+        if (user is null)
+        {
+            _logger.LogWarning("User with Email {Email} not found", request.Email);
+            return UserError.UserNotFound;
+        }
+
+        user.IsEnable = !user.IsEnable;
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+        {
+            _logger.LogWarning("Failed to change status of user account with Email {Email}: {Errors}", request.Email, result.Errors);
+            return UserError.ServerError;
+        }
+        
+        _logger.LogInformation("User account with Email {Email} disabled successfully", request.Email);
+        return true;
+    }
+    public async Task<IEnumerable<AdminUsersProfileResponse>> GetAllUsersAsync(string userId,CancellationToken cancellationToken = default)
+    {
+        var data = await (from user in _context.Users.AsNoTracking()
+                              join userRole in _context.UserRoles.AsNoTracking() on user.Id equals userRole.UserId
+                              join role in _context.Roles.AsNoTracking() on userRole.RoleId equals role.Id
+                              where user.Id != userId
+                              select new AdminUsersProfileResponse
+                              {
+                                  UserName=user.UserName!,
+                                  Email=user.Email!,
+                                  ProfilePictureUrl=user.ProfilePictureUrl,
+                                  Address=user.Address,
+                                  IsActive=user.IsEnable,
+                                  CreatedAt=user.CreatedAt,
+                                  Role=role.Name!
+                              }
+                           ).ToListAsync(cancellationToken);
+
+            var response=await Task.WhenAll(data.Select(async user=>new AdminUsersProfileResponse
+            {
+                UserName = user.UserName,
+                Email = user.Email,
+                ProfilePictureUrl = await _blobStorageServices.GetFileUrlAsync(user.ProfilePictureUrl),
+                IsActive = user.IsActive,
+                Address = user.Address,
+                CreatedAt = user.CreatedAt,
+                Role = user.Role
+            }));
+        return response;
+    }
+
+    public async Task<OneOf<List<ValidationError>, bool, Error>> AddToRoleAsync(AddToRoleRequest request,CancellationToken cancellationToken=default)
+    {
+        var validationResult = await _validationService.ValidateRequest(_addToRoleRequestValidator, request);
+        if (validationResult is not null)
+        {
+            _logger.LogWarning("Validation failed for change status of user account: {Errors}", validationResult);
+            return validationResult;
+        }
+
+        var user = await _userManager.FindByEmailAsync(request.Email);
+        if(user is null)
+        {
+            _logger.LogWarning("User with Email {Email} not found", request.Email);
+            return UserError.UserNotFound;
+        }
+        var roles = await _userManager.GetRolesAsync(user);
+        var roleName = roles.FirstOrDefault();
+        if (string.Equals(roleName, request.RoleName, StringComparison.OrdinalIgnoreCase))
+            return true;
+        var removeFromRoleResult=await _userManager.RemoveFromRoleAsync(user, roleName!);
+        if (!removeFromRoleResult.Succeeded)
+        {
+            _logger.LogError("cann't remove user with email {Email} from role with name {RoleName}", request.Email, roleName);
+            return UserError.ServerError;
+        }
+        var addToRoleResult = await _userManager.AddToRoleAsync(user, request.RoleName);
+        if(!addToRoleResult.Succeeded)
+        {
+            _logger.LogError("cann't add user with email {Email} to role with name {RoleName}", request.Email, request.RoleName);
+            return UserError.ServerError;
+        }
+
+        // add logs successful
+        _logger.LogInformation("add user with email {Email} to role with name {RoleName} succesfully", request.Email, request.RoleName);
+        return true;
+    }
+
+
+
+
+
+
+
+
 }
+
