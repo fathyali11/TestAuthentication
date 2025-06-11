@@ -14,6 +14,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Web;
 using TestAuthentication.Constants;
 using TestAuthentication.Constants.AuthoriaztionFilters;
@@ -125,8 +126,8 @@ public class AuthServices(
         }
 
         _logger.LogInformation("Login successful for user: {Username}", request.Username);
-        await _hybridCache.RemoveAsync("AllUsers", cancellationToken);
-        return await GenerateResponse(user);
+        
+        return await GenerateResponse(user,cancellationToken);
     }
 
     public async Task<OneOf<List<ValidationError>, AuthResponse, Error, bool>> ConfirmEmailAsync(ConfirmEmailRequest request, CancellationToken cancellationToken = default)
@@ -163,9 +164,9 @@ public class AuthServices(
             _logger.LogError("Email confirmation failed for user ID: {UserId}, Errors: {Errors}", request.UserId, result.Errors);
             return UserError.ServerError;
         }
-        await _hybridCache.RemoveAsync("AllUsers", cancellationToken);
+        
         _logger.LogInformation("Email confirmed successfully for user ID: {UserId}", request.UserId);
-        return await GenerateResponse(user);
+        return await GenerateResponse(user,cancellationToken);
     }
 
     public async Task<OneOf<List<ValidationError>, bool, Error>> ResendEmailConfirmationAsync(ResendEmailConfirmationRequest request, CancellationToken cancellationToken = default)
@@ -246,7 +247,7 @@ public class AuthServices(
         }
 
         _logger.LogInformation("Password reset successful for user ID: {UserId}", request.UserId);
-        return await GenerateResponse(user);
+        return await GenerateResponse(user, cancellationToken);
     }
 
     public async Task<OneOf<List<ValidationError>, bool, Error>> AddToRoleAsync(AddToRoleRequest request, CancellationToken cancellationToken = default)
@@ -377,7 +378,7 @@ public class AuthServices(
         _logger.LogInformation("Forget password email enqueued successfully for user: {Email}", user.Email);
     }
 
-    private async Task<AuthResponse> GenerateResponse(ApplicationUser user)
+    private async Task<AuthResponse> GenerateResponse(ApplicationUser user,CancellationToken cancellationToken=default)
     {
         _logger.LogInformation("Generating authentication response for user: {Username}", user.UserName);
         var roles= await _userManager.GetRolesAsync(user);
@@ -407,7 +408,7 @@ public class AuthServices(
             RefreshToken = GenerateRefreshToken(),
             RefreshTokenExpiresIn = DateTime.UtcNow.AddDays(_jwtConfig.RefreshExpireTime)
         };
-
+        await _hybridCache.RemoveAsync("AllUsers",cancellationToken);
         _logger.LogInformation("Authentication response generated successfully for user: {Username}", user.UserName);
         return new AuthResponse
         {
