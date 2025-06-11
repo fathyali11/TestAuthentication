@@ -1,11 +1,10 @@
 ﻿using FluentValidation;
-using Mapster;
 using MapsterMapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using OneOf;
 using TestAuthentication.Constants.Errors;
-using TestAuthentication.CustomValidations;
 using TestAuthentication.Data;
 using TestAuthentication.DTOS.General;
 using TestAuthentication.DTOS.Requests;
@@ -25,7 +24,7 @@ public class UserService(IValidator<ChangePasswordRequest> _changePasswordReques
     ValidationService _validationService,IMapper _mapper,
     IValidator<UpdateProfilePictureRequest> _updateProfilePictureRequest,
     BlobStorageServices _blobStorageServices,
-    ApplicationDbContext _context) :IUserService
+    ApplicationDbContext _context,HybridCache _hybridCache) :IUserService
 {
     public async Task<OneOf<List<ValidationError>, bool, Error>> ChangePasswordAsync(string userId,ChangePasswordRequest request,CancellationToken cancellationToken=default)
     {
@@ -75,6 +74,7 @@ public class UserService(IValidator<ChangePasswordRequest> _changePasswordReques
             _logger.LogWarning("Failed to update profile for user with ID {UserId}: {Errors}", userId, result.Errors);
             return UserError.ServerError;
         }
+        await _hybridCache.RemoveAsync("AllUsers", cancellationToken);
         _logger.LogInformation("Profile updated successfully for user with ID {UserId} and email {Email}", userId, user.Email);
         return true;
     }
@@ -110,9 +110,12 @@ public class UserService(IValidator<ChangePasswordRequest> _changePasswordReques
             _logger.LogWarning("User with ID {UserId} not found", userId);
             return UserError.UserNotFound;
         }
-        
-        await _blobStorageServices.UpdateFileAsync(request.ProfilePicture, user.ProfilePictureUrl);
-        user.ProfilePictureUrl = request.ProfilePicture.FileName.Replace(" ", "");
+        var oldProfilePictureUrl = user.ProfilePictureUrl;
+
+        var imageName = $"{Guid.NewGuid()}_{request.ProfilePicture.FileName}".Replace(" ", "");
+        user.ProfilePictureUrl = imageName;
+        await _blobStorageServices.UpdateFileAsync(request.ProfilePicture,imageName, oldProfilePictureUrl);
+        //user.ProfilePictureUrl = request.ProfilePicture.FileName.Replace(" ", "");
 
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
@@ -120,7 +123,8 @@ public class UserService(IValidator<ChangePasswordRequest> _changePasswordReques
             _logger.LogWarning("Failed to update profile picture for user with ID {UserId}: {Errors}", userId, result.Errors);
             return UserError.ServerError;
         }
-        
+        await _hybridCache.RemoveAsync($"UserProfile_{oldProfilePictureUrl}", cancellationToken);
+        await _hybridCache.RemoveAsync("AllUsers", cancellationToken);
         _logger.LogInformation("Profile picture updated successfully for user with ID {UserId}", userId);
         return true;
     }
@@ -147,37 +151,42 @@ public class UserService(IValidator<ChangePasswordRequest> _changePasswordReques
             _logger.LogWarning("Failed to change status of user account with Email {Email}: {Errors}", request.Email, result.Errors);
             return UserError.ServerError;
         }
-        
+        await _hybridCache.RemoveAsync("AllUsers", cancellationToken);
         _logger.LogInformation("User account with Email {Email} disabled successfully", request.Email);
         return true;
     }
     public async Task<IEnumerable<AdminUsersProfileResponse>> GetAllUsersAsync(string userId,CancellationToken cancellationToken = default)
     {
-        var data = await (from user in _context.Users.AsNoTracking()
-                              join userRole in _context.UserRoles.AsNoTracking() on user.Id equals userRole.UserId
-                              join role in _context.Roles.AsNoTracking() on userRole.RoleId equals role.Id
-                              where user.Id != userId
-                              select new AdminUsersProfileResponse
-                              {
-                                  UserName=user.UserName!,
-                                  Email=user.Email!,
-                                  ProfilePictureUrl=user.ProfilePictureUrl,
-                                  Address=user.Address,
-                                  IsActive=user.IsEnable,
-                                  CreatedAt=user.CreatedAt,
-                                  Role=role.Name!
-                              }
-                           ).ToListAsync(cancellationToken);
+        var cachUsersKey=$"AllUsers";
 
-            var response=await Task.WhenAll(data.Select(async user=>new AdminUsersProfileResponse
+        var cachedUsers = await _hybridCache.GetOrCreateAsync(cachUsersKey, async _ =>
+        {
+            return await GetAllCachedUsers(userId, cancellationToken);
+        }, cancellationToken: cancellationToken);
+
+            var response=await Task.WhenAll(cachedUsers.Select(async user=>
             {
-                UserName = user.UserName,
-                Email = user.Email,
-                ProfilePictureUrl = await _blobStorageServices.GetFileUrlAsync(user.ProfilePictureUrl),
-                IsActive = user.IsActive,
-                Address = user.Address,
-                CreatedAt = user.CreatedAt,
-                Role = user.Role
+                var cacheKey = $"UserProfile_{user.ProfilePictureUrl}";
+
+                var pictureUrl = await _hybridCache.GetOrCreateAsync(cacheKey,
+                    async _ =>
+                    {
+                       var url = await _blobStorageServices.GetFileUrlAsync(user.ProfilePictureUrl);
+                        return url;
+                    },cancellationToken:cancellationToken);
+
+
+                return new AdminUsersProfileResponse
+                {
+                    UserName = user.UserName,
+                    Email = user.Email,
+                    ProfilePictureUrl = pictureUrl,
+                    IsActive = user.IsActive,
+                    Address = user.Address,
+                    CreatedAt = user.CreatedAt,
+                    Role = user.Role
+                };
+                
             }));
         return response;
     }
@@ -215,12 +224,31 @@ public class UserService(IValidator<ChangePasswordRequest> _changePasswordReques
         }
 
         // add logs successful
+        await _hybridCache.RemoveAsync("AllUsers", cancellationToken);
         _logger.LogInformation("add user with email {Email} to role with name {RoleName} succesfully", request.Email, request.RoleName);
         return true;
     }
 
-
-
+    private async Task<IEnumerable<AdminUsersProfileResponse>> GetAllCachedUsers(string userId,CancellationToken cancellationToken=default)
+    {
+        _logger.LogInformation("Retrieving all users except the current user");
+        var data = await (from user in _context.Users.AsNoTracking()
+                          join userRole in _context.UserRoles.AsNoTracking() on user.Id equals userRole.UserId
+                          join role in _context.Roles.AsNoTracking() on userRole.RoleId equals role.Id
+                          where user.Id != userId
+                          select new AdminUsersProfileResponse
+                          {
+                              UserName = user.UserName!,
+                              Email = user.Email!,
+                              ProfilePictureUrl = user.ProfilePictureUrl,
+                              Address = user.Address,
+                              IsActive = user.IsEnable,
+                              CreatedAt = user.CreatedAt,
+                              Role = role.Name!
+                          }
+                           ).ToListAsync(cancellationToken);
+        return data;
+    }
 
 
 

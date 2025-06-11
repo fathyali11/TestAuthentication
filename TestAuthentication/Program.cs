@@ -31,6 +31,8 @@ builder.Host.UseSerilog((context, services, configuration) =>
 });
 // Add services to the container.
 
+builder.Services.AddHybridCache();
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>

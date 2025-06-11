@@ -5,6 +5,7 @@ using MapsterMapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using OneOf;
@@ -13,7 +14,6 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Web;
 using TestAuthentication.Constants;
 using TestAuthentication.Constants.AuthoriaztionFilters;
 using TestAuthentication.Constants.Errors;
@@ -24,7 +24,6 @@ using TestAuthentication.DTOS.Responses;
 using TestAuthentication.Models;
 using TestAuthentication.Services.BlobStorage;
 using TestAuthentication.Services.EmailServices;
-using TestAuthentication.Services.General;
 
 namespace TestAuthentication.Services.AuthService;
 
@@ -44,7 +43,8 @@ public class AuthServices(
     ILogger<AuthServices> _logger,
     RoleManager<IdentityRole> _roleManager,
     ApplicationDbContext _context,
-    BlobStorageServices _blobStorageServices
+    BlobStorageServices _blobStorageServices,
+    HybridCache _hybridCache
 ) : IAuthServices
 {
     private readonly JwtConfig _jwtConfig = options.Value;
@@ -70,15 +70,16 @@ public class AuthServices(
 
         _logger.LogInformation("Creating new user with email: {Email}", request.Email);
         var user = request.Adapt<ApplicationUser>();
-
-        await _blobStorageServices.UploadFileAsync(request.ProfilePicture);
+        var imageName=$"{Guid.NewGuid().ToString()}_{request.ProfilePicture.FileName.Replace(" ", "")}";
+        user.ProfilePictureUrl = imageName;
+        await _blobStorageServices.UploadFileAsync(request.ProfilePicture,imageName);
         var result = await _userManager.CreateAsync(user, request.Password);
         if (!result.Succeeded)
         {
             _logger.LogError("User registration failed: {Errors}", result.Errors);
             return UserError.ServerError;
         }
-        await _userManager.AddToRoleAsync(user, CustomerRoleAndPermissions.Name);
+        await _userManager.AddToRoleAsync(user, AdminRoleAndPermissions.Name);
         await SendEmailConfirmation(user);
         _logger.LogInformation("User registration successful, email confirmation sent to: {Email}", request.Email);
         return true;
@@ -123,7 +124,8 @@ public class AuthServices(
         }
 
         _logger.LogInformation("Login successful for user: {Username}", request.Username);
-        return await GenerateResponse(user);
+        
+        return await GenerateResponse(user,cancellationToken);
     }
 
     public async Task<OneOf<List<ValidationError>, AuthResponse, Error, bool>> ConfirmEmailAsync(ConfirmEmailRequest request, CancellationToken cancellationToken = default)
@@ -160,9 +162,9 @@ public class AuthServices(
             _logger.LogError("Email confirmation failed for user ID: {UserId}, Errors: {Errors}", request.UserId, result.Errors);
             return UserError.ServerError;
         }
-
+        
         _logger.LogInformation("Email confirmed successfully for user ID: {UserId}", request.UserId);
-        return await GenerateResponse(user);
+        return await GenerateResponse(user,cancellationToken);
     }
 
     public async Task<OneOf<List<ValidationError>, bool, Error>> ResendEmailConfirmationAsync(ResendEmailConfirmationRequest request, CancellationToken cancellationToken = default)
@@ -243,7 +245,7 @@ public class AuthServices(
         }
 
         _logger.LogInformation("Password reset successful for user ID: {UserId}", request.UserId);
-        return await GenerateResponse(user);
+        return await GenerateResponse(user, cancellationToken);
     }
 
     public async Task<OneOf<List<ValidationError>, bool, Error>> AddToRoleAsync(AddToRoleRequest request, CancellationToken cancellationToken = default)
@@ -374,7 +376,7 @@ public class AuthServices(
         _logger.LogInformation("Forget password email enqueued successfully for user: {Email}", user.Email);
     }
 
-    private async Task<AuthResponse> GenerateResponse(ApplicationUser user)
+    private async Task<AuthResponse> GenerateResponse(ApplicationUser user,CancellationToken cancellationToken=default)
     {
         _logger.LogInformation("Generating authentication response for user: {Username}", user.UserName);
         var roles= await _userManager.GetRolesAsync(user);
@@ -404,7 +406,7 @@ public class AuthServices(
             RefreshToken = GenerateRefreshToken(),
             RefreshTokenExpiresIn = DateTime.UtcNow.AddDays(_jwtConfig.RefreshExpireTime)
         };
-
+        await _hybridCache.RemoveAsync("AllUsers",cancellationToken);
         _logger.LogInformation("Authentication response generated successfully for user: {Username}", user.UserName);
         return new AuthResponse
         {
