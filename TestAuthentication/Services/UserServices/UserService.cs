@@ -1,13 +1,10 @@
 ﻿using FluentValidation;
-using Mapster;
 using MapsterMapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using OneOf;
-using System.Threading;
 using TestAuthentication.Constants.Errors;
-using TestAuthentication.CustomValidations;
 using TestAuthentication.Data;
 using TestAuthentication.DTOS.General;
 using TestAuthentication.DTOS.Requests;
@@ -114,8 +111,11 @@ public class UserService(IValidator<ChangePasswordRequest> _changePasswordReques
             return UserError.UserNotFound;
         }
         var oldProfilePictureUrl = user.ProfilePictureUrl;
-        await _blobStorageServices.UpdateFileAsync(request.ProfilePicture, user.ProfilePictureUrl);
-        user.ProfilePictureUrl = request.ProfilePicture.FileName.Replace(" ", "");
+
+        var imageName = $"{Guid.NewGuid()}_{request.ProfilePicture.FileName}".Replace(" ", "");
+        user.ProfilePictureUrl = imageName;
+        await _blobStorageServices.UpdateFileAsync(request.ProfilePicture,imageName, oldProfilePictureUrl);
+        //user.ProfilePictureUrl = request.ProfilePicture.FileName.Replace(" ", "");
 
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
@@ -124,6 +124,7 @@ public class UserService(IValidator<ChangePasswordRequest> _changePasswordReques
             return UserError.ServerError;
         }
         await _hybridCache.RemoveAsync($"UserProfile_{oldProfilePictureUrl}", cancellationToken);
+        await _hybridCache.RemoveAsync("AllUsers", cancellationToken);
         _logger.LogInformation("Profile picture updated successfully for user with ID {UserId}", userId);
         return true;
     }
@@ -223,6 +224,7 @@ public class UserService(IValidator<ChangePasswordRequest> _changePasswordReques
         }
 
         // add logs successful
+        await _hybridCache.RemoveAsync("AllUsers", cancellationToken);
         _logger.LogInformation("add user with email {Email} to role with name {RoleName} succesfully", request.Email, request.RoleName);
         return true;
     }

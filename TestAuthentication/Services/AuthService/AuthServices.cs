@@ -14,8 +14,6 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
-using System.Web;
 using TestAuthentication.Constants;
 using TestAuthentication.Constants.AuthoriaztionFilters;
 using TestAuthentication.Constants.Errors;
@@ -26,7 +24,6 @@ using TestAuthentication.DTOS.Responses;
 using TestAuthentication.Models;
 using TestAuthentication.Services.BlobStorage;
 using TestAuthentication.Services.EmailServices;
-using TestAuthentication.Services.General;
 
 namespace TestAuthentication.Services.AuthService;
 
@@ -73,15 +70,16 @@ public class AuthServices(
 
         _logger.LogInformation("Creating new user with email: {Email}", request.Email);
         var user = request.Adapt<ApplicationUser>();
-
-        await _blobStorageServices.UploadFileAsync(request.ProfilePicture);
+        var imageName=$"{Guid.NewGuid().ToString()}_{request.ProfilePicture.FileName.Replace(" ", "")}";
+        user.ProfilePictureUrl = imageName;
+        await _blobStorageServices.UploadFileAsync(request.ProfilePicture,imageName);
         var result = await _userManager.CreateAsync(user, request.Password);
         if (!result.Succeeded)
         {
             _logger.LogError("User registration failed: {Errors}", result.Errors);
             return UserError.ServerError;
         }
-        await _userManager.AddToRoleAsync(user, CustomerRoleAndPermissions.Name);
+        await _userManager.AddToRoleAsync(user, AdminRoleAndPermissions.Name);
         await SendEmailConfirmation(user);
         _logger.LogInformation("User registration successful, email confirmation sent to: {Email}", request.Email);
         return true;

@@ -7,11 +7,11 @@ public class BlobStorageServices(IConfiguration _configuration,
 {
     private readonly BlobServiceClient _blobServiceClient= new(_configuration.GetConnectionString("StorageConnection"));
     private static readonly string _containerName = "images";
-    public async Task UploadFileAsync(IFormFile file)
+    public async Task UploadFileAsync(IFormFile file,string fileName)
     {
         var containerClient = _blobServiceClient.GetBlobContainerClient(_containerName);
         await containerClient.CreateIfNotExistsAsync();
-        var blobClient = containerClient.GetBlobClient(file.FileName.Replace(" ",""));
+        var blobClient = containerClient.GetBlobClient(fileName);
 
         using var fileStream = file.OpenReadStream();
 
@@ -46,9 +46,9 @@ public class BlobStorageServices(IConfiguration _configuration,
             throw new FileNotFoundException($"File {fileName} not found in blob storage.");
         }
     }
-    public async Task UpdateFileAsync(IFormFile file, string existingFileName)
+    public async Task UpdateFileAsync(IFormFile file,string fileName, string existingFileName)
     {
         await DeleteFileAsync(existingFileName);
-        await UploadFileAsync(file);
+        await UploadFileAsync(file,fileName);
     }
 }
