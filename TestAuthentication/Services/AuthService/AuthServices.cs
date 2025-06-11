@@ -5,6 +5,7 @@ using MapsterMapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using OneOf;
@@ -44,7 +45,8 @@ public class AuthServices(
     ILogger<AuthServices> _logger,
     RoleManager<IdentityRole> _roleManager,
     ApplicationDbContext _context,
-    BlobStorageServices _blobStorageServices
+    BlobStorageServices _blobStorageServices,
+    HybridCache _hybridCache
 ) : IAuthServices
 {
     private readonly JwtConfig _jwtConfig = options.Value;
@@ -123,6 +125,7 @@ public class AuthServices(
         }
 
         _logger.LogInformation("Login successful for user: {Username}", request.Username);
+        await _hybridCache.RemoveAsync("AllUsers", cancellationToken);
         return await GenerateResponse(user);
     }
 
@@ -160,7 +163,7 @@ public class AuthServices(
             _logger.LogError("Email confirmation failed for user ID: {UserId}, Errors: {Errors}", request.UserId, result.Errors);
             return UserError.ServerError;
         }
-
+        await _hybridCache.RemoveAsync("AllUsers", cancellationToken);
         _logger.LogInformation("Email confirmed successfully for user ID: {UserId}", request.UserId);
         return await GenerateResponse(user);
     }
