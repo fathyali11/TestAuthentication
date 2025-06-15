@@ -103,11 +103,20 @@ builder.Services.AddAuthentication(options =>
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtConfig.Key))
         };
 
-    } ) ;
+    } )
+    .AddGoogle(options =>
+    {
+        var googleConfig=builder.Configuration.GetSection(nameof(GoogleConfig)).Get<GoogleConfig>();
+        options.ClientId =googleConfig?.ClientId ?? string.Empty;
+        options.ClientSecret = googleConfig?.ClientSecret ?? string.Empty;
+        options.SaveTokens = true;
+    });
 
 builder.Services.AddOptions<EmailSettings>()
     .Bind(builder.Configuration.GetSection(nameof(EmailSettings)))
     .ValidateOnStart();
+
+
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuthServices, AuthServices>();
 builder.Services.AddScoped<IEmailService, EmailService>();
