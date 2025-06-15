@@ -1,4 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using TestAuthentication.DTOS.Requests;
 using TestAuthentication.Services.AuthService;
 
@@ -84,4 +88,27 @@ public class AuthController(IAuthServices _authServices) : ControllerBase
         else
             return BadRequest(result.AsT2);
     }
+
+    [HttpGet("external-login")]
+    public IActionResult ExternalLogin()
+    {
+        var redirectUrl = Url.Action(nameof(ExternalCallback), "Auth", null, Request.Scheme);
+        var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
+        return Challenge(properties, GoogleDefaults.AuthenticationScheme);
+    }
+
+    [HttpGet("external-callback")]
+    public async Task<IActionResult> ExternalCallback()
+    {
+        var result = await HttpContext.AuthenticateAsync("MyCookieAuth");
+        var tokenResult = await _authServices.GenerateTokenForExternalLogin(result, CancellationToken.None);
+        return tokenResult.Match<IActionResult>(
+            authResponse => Ok(authResponse),
+            error => BadRequest(error)
+        );
+    }
+
+
+
+
 }

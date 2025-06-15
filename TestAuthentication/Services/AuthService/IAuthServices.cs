@@ -1,4 +1,5 @@
-﻿using OneOf;
+﻿using Microsoft.AspNetCore.Authentication;
+using OneOf;
 using TestAuthentication.DTOS.General;
 using TestAuthentication.DTOS.Requests;
 using TestAuthentication.DTOS.Responses;
@@ -14,4 +15,5 @@ public interface IAuthServices
     Task<OneOf<List<ValidationError>,bool,Error>> ForgetPasswordAsync(ForgetPasswordRequest request, CancellationToken cancellationToken = default);
     Task<OneOf<List<ValidationError>,AuthResponse, Error>> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default);
     Task<OneOf<List<ValidationError>, bool, Error>> AddToRoleAsync(AddToRoleRequest request, CancellationToken cancellationToken = default);
+    Task<OneOf<AuthResponse, Error>> GenerateTokenForExternalLogin(AuthenticateResult result, CancellationToken cancellationToken = default);
 }
