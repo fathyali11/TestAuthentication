@@ -37,9 +37,11 @@ global using TestAuthentication.Services.UserServices;
 global using Microsoft.AspNetCore.Authorization;
 global using Microsoft.AspNetCore.Mvc.Filters;
 global using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-
-
-
+global using Microsoft.AspNetCore.Authentication.JwtBearer;
+global using Microsoft.OpenApi.Models;
+global using Serilog;
+global using TestAuthentication.CustomValidations;
+global using TestAuthentication.Mappings;
 
 
 

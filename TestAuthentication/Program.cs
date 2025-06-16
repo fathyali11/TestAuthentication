@@ -1,27 +1,3 @@
-using FluentValidation;
-using Hangfire;
-using Mapster;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
-using Serilog;
-using System.Text;
-using TestAuthentication.Constants;
-using TestAuthentication.CustomValidations;
-using TestAuthentication.Data;
-using TestAuthentication.DTOS.Requests;
-using TestAuthentication.Mappings;
-using TestAuthentication.Models;
-using TestAuthentication.Services.AuthService;
-using TestAuthentication.Services.BlobStorage;
-using TestAuthentication.Services.EmailServices;
-using TestAuthentication.Services.General;
-using TestAuthentication.Services.UserServices;
-
-
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog((context, services, configuration) =>
