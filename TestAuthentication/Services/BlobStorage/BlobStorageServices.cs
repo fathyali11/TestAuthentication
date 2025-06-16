@@ -1,6 +1,4 @@
-﻿using Azure.Storage.Blobs;
-
-namespace TestAuthentication.Services.BlobStorage;
+﻿namespace TestAuthentication.Services.BlobStorage;
 
 public class BlobStorageServices(IConfiguration _configuration,
     ILogger<BlobStorageServices> _logger)

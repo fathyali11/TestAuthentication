@@ -1,8 +1,4 @@
-﻿using FluentValidation;
-using TestAuthentication.DTOS.Requests;
-
-namespace TestAuthentication.CustomValidations;
-
+﻿namespace TestAuthentication.CustomValidations;
 public class ForgetPasswordRequestValidator : AbstractValidator<ForgetPasswordRequest>
 {
     public ForgetPasswordRequestValidator()

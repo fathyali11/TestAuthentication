@@ -1,10 +1,4 @@
-﻿using Mapster;
-using TestAuthentication.DTOS.Requests;
-using TestAuthentication.DTOS.Responses;
-using TestAuthentication.Models;
-
-namespace TestAuthentication.Mappings;
-
+﻿namespace TestAuthentication.Mappings;
 public class UserMapping
 {
     public static void ConfigMapping()

@@ -1,6 +1,4 @@
-﻿using TestAuthentication.DTOS.General;
-
-namespace TestAuthentication.Constants.Errors;
+﻿namespace TestAuthentication.Constants.Errors;
 
 public static class UserError
 {

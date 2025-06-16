@@ -1,11 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication;
-using OneOf;
-using TestAuthentication.DTOS.General;
-using TestAuthentication.DTOS.Requests;
-using TestAuthentication.DTOS.Responses;
-
-namespace TestAuthentication.Services.AuthService;
-
+﻿namespace TestAuthentication.Services.AuthService;
 public interface IAuthServices
 {
     Task<OneOf<List<ValidationError>,Error,bool>> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default);

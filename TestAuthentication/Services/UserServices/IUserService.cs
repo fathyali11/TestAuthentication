@@ -1,9 +1,4 @@
-﻿using OneOf;
-using TestAuthentication.DTOS.General;
-using TestAuthentication.DTOS.Requests;
-using TestAuthentication.DTOS.Responses;
-namespace TestAuthentication.Services.UserServices;
-
+﻿namespace TestAuthentication.Services.UserServices;
 public interface IUserService
 {
     Task<OneOf<List<ValidationError>, bool, Error>> ChangePasswordAsync(string userId, ChangePasswordRequest request, CancellationToken cancellationToken = default);
