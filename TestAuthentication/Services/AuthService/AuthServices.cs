@@ -2,11 +2,13 @@
 using Hangfire;
 using Mapster;
 using MapsterMapper;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Options;
+using Microsoft.Identity.Client;
 using Microsoft.IdentityModel.Tokens;
 using OneOf;
 using System.IdentityModel.Tokens.Jwt;
@@ -284,6 +286,57 @@ public class AuthServices(
         _logger.LogInformation("User Email: {Email} added to role: {RoleName} successfully", request.Email, request.RoleName);
         return true;
     }
+
+    public async Task<OneOf<AuthResponse, Error>> GenerateTokenForExternalLogin(AuthenticateResult result ,CancellationToken cancellationToken=default)
+    {
+        if(!result.Succeeded)
+            return UserError.InvalidToken;
+
+        var email= result.Principal?.FindFirstValue(ClaimTypes.Email);
+        if(string.IsNullOrEmpty(email))
+        {
+            _logger.LogWarning("Email not found in external login result");
+            return UserError.InvalidEmail;
+        }
+        _logger.LogInformation("Processing external login for email: {Email}", email);
+
+        var user = await _userManager.FindByEmailAsync(email);
+        if(user is null)
+        {
+            _logger.LogInformation("User not found with email: {Email}, creating new user", email);
+            var imagePath=$"{Directory.GetCurrentDirectory()}/wwwroot/images/Screenshot20250-18175857.png";
+            var imageName = $"{Guid.NewGuid().ToString()}_{Path.GetFileName(imagePath)}";
+            using var stream = new FileStream(imagePath, FileMode.Open, FileAccess.Read);
+            await _blobStorageServices.UploadStreamAsync(stream, imageName);
+
+            user = new ApplicationUser
+            {
+                UserName = email,
+                Email = email,
+                EmailConfirmed = true,
+                IsEnable = true ,
+                CreatedAt=DateTime.UtcNow,
+                ProfilePictureUrl=imageName
+            };
+            var createResult = await _userManager.CreateAsync(user);
+            if (!createResult.Succeeded)
+            {
+                _logger.LogError("Failed to create user for external login: {Errors}", createResult.Errors);
+                return UserError.ServerError;
+            }
+            _logger.LogInformation("New user created successfully with email: {Email}", email);
+            _logger.LogInformation("add to customer role for user: {Email}",email);
+            await _userManager.AddToRoleAsync(user, CustomerRoleAndPermissions.Name);
+            _logger.LogInformation("User added to customer role successfully for email: {Email}", email);
+        }
+        else
+        {
+            _logger.LogInformation("User found with email: {Email}, proceeding with login", email);
+        }
+
+        return await GenerateResponse(user,cancellationToken);  
+    }
+
     private (string, int) GenerateToken(ApplicationUser user,List<string>permissions)
     {
         _logger.LogInformation("Generating JWT token for user: {Username}", user.UserName);
@@ -383,13 +436,13 @@ public class AuthServices(
         var roleName = roles.FirstOrDefault();
 
         var role =roleName is not null
-            ? await _context.Roles.FirstOrDefaultAsync(x => x.Name == roleName)
+            ? await _context.Roles.FirstOrDefaultAsync(x => x.Name == roleName, cancellationToken: cancellationToken)
             : null;
 
         var permissions=await _context.RoleClaims
             .Where(x => x.RoleId == role!.Id)
             .Select(x => x.ClaimValue)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         var userData = _mapper.Map<UserData>(user);
         userData.Permissions = permissions!;

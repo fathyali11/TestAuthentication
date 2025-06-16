@@ -1,6 +1,7 @@
 using FluentValidation;
 using Hangfire;
 using Mapster;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -72,6 +73,10 @@ builder.Services.AddOptions<JwtConfig>()
     .Bind(builder.Configuration.GetSection(nameof(JwtConfig)))
     .ValidateOnStart();
 
+builder.Services.AddOptions<GoogleConfig>()
+    .Bind(builder.Configuration.GetSection(nameof(GoogleConfig)))
+    .ValidateOnStart();
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -84,30 +89,49 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
+builder.Services.AddOptions<GoogleConfig>()
+    .Bind(builder.Configuration.GetSection(nameof(GoogleConfig)))
+    .ValidateOnStart();
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultAuthenticateScheme=JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = "MyCookieAuth"; // «”„ Œ«’
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
-    .AddJwtBearer(options =>
+.AddCookie("MyCookieAuth", options =>
+{
+    options.LoginPath = "/api/auth/external-login";
+    options.LogoutPath = "/logout";
+})
+.AddJwtBearer(options =>
+{
+    var jwtConfig = builder.Configuration.GetSection(nameof(JwtConfig)).Get<JwtConfig>();
+    options.TokenValidationParameters = new TokenValidationParameters
     {
-        var jwtConfig = builder.Configuration.GetSection(nameof(JwtConfig)).Get<JwtConfig>();
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtConfig!.Issuer,
-            ValidAudience = jwtConfig.Audience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtConfig.Key))
-        };
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtConfig!.Issuer,
+        ValidAudience = jwtConfig.Audience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtConfig.Key))
+    };
+})
+.AddGoogle(options =>
+{
+    options.ClientId = builder.Configuration["GoogleConfig:ClientId"]!;
+    options.ClientSecret = builder.Configuration["GoogleConfig:ClientSecret"]!;
+    options.SignInScheme = "MyCookieAuth"; // ?? «” Œœ„ ‰›” «·«”„ «··Ì ›Êﬁ
+    options.SaveTokens = true;
+});
 
-    } ) ;
+
 
 builder.Services.AddOptions<EmailSettings>()
     .Bind(builder.Configuration.GetSection(nameof(EmailSettings)))
     .ValidateOnStart();
+
+
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuthServices, AuthServices>();
 builder.Services.AddScoped<IEmailService, EmailService>();
@@ -151,6 +175,7 @@ if (app.Environment.IsDevelopment())
 app.UseSerilogRequestLogging();
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 app.UseHangfireDashboard("/hangfire");
 

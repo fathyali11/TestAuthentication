@@ -17,6 +17,13 @@ public class BlobStorageServices(IConfiguration _configuration,
 
         await blobClient.UploadAsync(fileStream, overwrite: true);
     }
+    public async Task UploadStreamAsync(Stream fileStream, string fileName)
+    {
+        var containerClient = _blobServiceClient.GetBlobContainerClient(_containerName);
+        await containerClient.CreateIfNotExistsAsync();
+        var blobClient = containerClient.GetBlobClient(fileName);
+        await blobClient.UploadAsync(fileStream, overwrite: true);
+    }
     public async Task<string> GetFileUrlAsync(string fileName)
     {
         var containerClient = _blobServiceClient.GetBlobContainerClient(_containerName);
