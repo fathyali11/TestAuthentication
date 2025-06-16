@@ -1,10 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
-using System.Security.Claims;
-using TestAuthentication.Constants.AuthoriaztionFilters;
-using TestAuthentication.Models;
-
-namespace TestAuthentication.DataSeeders;
-
+﻿namespace TestAuthentication.DataSeeders;
 public class DataSeederHostedService(IServiceProvider _serviceProvider) :IHostedService
 {
 

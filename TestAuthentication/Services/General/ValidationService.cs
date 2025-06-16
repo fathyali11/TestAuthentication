@@ -1,8 +1,4 @@
-﻿using FluentValidation;
-using TestAuthentication.DTOS.General;
-
-namespace TestAuthentication.Services.General;
-
+﻿namespace TestAuthentication.Services.General;
 public class ValidationService(ILogger<ValidationService> _logger)
 {
     public async Task<List<ValidationError>?> ValidateRequest<TSource, TRequest>(TSource source, TRequest request)

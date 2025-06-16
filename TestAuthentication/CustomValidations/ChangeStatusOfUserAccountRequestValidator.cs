@@ -1,8 +1,4 @@
-﻿using FluentValidation;
-using TestAuthentication.DTOS.Requests;
-
-namespace TestAuthentication.CustomValidations;
-
+﻿namespace TestAuthentication.CustomValidations;
 public class ChangeStatusOfUserAccountRequestValidator:AbstractValidator<ChangeStatusOfUserAccountRequest>
 {
     public ChangeStatusOfUserAccountRequestValidator()

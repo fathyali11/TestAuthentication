@@ -1,10 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
-using TestAuthentication.Constants.AuthoriaztionFilters;
-
-namespace TestAuthentication.CustomAuthorization;
-
+﻿namespace TestAuthentication.CustomAuthorization;
 public class HasPermission(string permission) : AuthorizeAttribute, IAuthorizationFilter
 {
     private readonly string _permission = permission;

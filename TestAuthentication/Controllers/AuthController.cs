@@ -1,12 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.Google;
-using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
-using TestAuthentication.DTOS.Requests;
-using TestAuthentication.Services.AuthService;
-
-namespace TestAuthentication.Controllers;
+﻿namespace TestAuthentication.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 public class AuthController(IAuthServices _authServices) : ControllerBase

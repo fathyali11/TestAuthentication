@@ -1,34 +1,4 @@
-﻿using FluentValidation;
-using Hangfire;
-using Mapster;
-using MapsterMapper;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Hybrid;
-using Microsoft.Extensions.Options;
-using Microsoft.Identity.Client;
-using Microsoft.IdentityModel.Tokens;
-using OneOf;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using TestAuthentication.Constants;
-using TestAuthentication.Constants.AuthoriaztionFilters;
-using TestAuthentication.Constants.Errors;
-using TestAuthentication.Data;
-using TestAuthentication.DTOS.General;
-using TestAuthentication.DTOS.Requests;
-using TestAuthentication.DTOS.Responses;
-using TestAuthentication.Models;
-using TestAuthentication.Services.BlobStorage;
-using TestAuthentication.Services.EmailServices;
-
-namespace TestAuthentication.Services.AuthService;
-
+﻿namespace TestAuthentication.Services.AuthService;
 public class AuthServices(
     IOptions<JwtConfig> options,
     IEmailService _emailSender,

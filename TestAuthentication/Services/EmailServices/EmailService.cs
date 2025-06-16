@@ -1,10 +1,4 @@
-﻿using Microsoft.Extensions.Options;
-
-using TestAuthentication.Constants;
-using MimeKit;
-using MailKit.Net.Smtp;
-
-namespace TestAuthentication.Services.EmailServices;
+﻿namespace TestAuthentication.Services.EmailServices;
 
 public class EmailService(IOptions<EmailSettings> options) : IEmailService
 {

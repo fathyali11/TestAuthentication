@@ -1,11 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
-using TestAuthentication.Constants.AuthoriaztionFilters;
-using TestAuthentication.CustomAuthorization;
-using TestAuthentication.DTOS.Requests;
-using TestAuthentication.Services.UserServices;
-
-namespace TestAuthentication.Controllers;
+﻿namespace TestAuthentication.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
