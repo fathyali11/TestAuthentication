@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.12.35514.174 d17.12
+VisualStudioVersion = 17.12.35514.174
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestAuthentication", "TestAuthentication\TestAuthentication.csproj", "{015E38C4-5BA1-43BA-B5A4-2301BF9870A5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UsersManagement", "TestAuthentication\UsersManagement.csproj", "{015E38C4-5BA1-43BA-B5A4-2301BF9870A5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
