@@ -1,6 +1,3 @@
-using Microsoft.AspNetCore.RateLimiting;
-using System.Threading.RateLimiting;
-
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog((context, services, configuration) =>
@@ -15,10 +12,10 @@ builder.Services.AddRateLimiter(options =>
 {
    options.AddFixedWindowLimiter("fixed", fixedOptions =>
     {
-        fixedOptions.PermitLimit = 4; // ⁄œœ «·ÿ·»«  «·„”„ÊÕ »Â« ›Ì ﬂ· ‰«›–…
-        fixedOptions.Window = TimeSpan.FromMinutes(1); // „œ… «·‰«›–…
+        fixedOptions.PermitLimit = 4; 
+        fixedOptions.Window = TimeSpan.FromMinutes(1);
         fixedOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst; 
-        fixedOptions.QueueLimit = 0; // «·Õœ «·√ﬁ’Ï ··ÿ·»«  ›Ì «·«‰ Ÿ«—
+        fixedOptions.QueueLimit = 0; 
         fixedOptions.AutoReplenishment = true; 
     });
 
