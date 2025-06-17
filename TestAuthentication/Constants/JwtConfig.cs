@@ -1,4 +1,4 @@
-﻿namespace TestAuthentication.Constants;
+﻿namespace UsersManagement.Constants;
 
 public class JwtConfig
 {

@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog((context, services, configuration) =>
@@ -7,6 +10,18 @@ builder.Host.UseSerilog((context, services, configuration) =>
         .ReadFrom.Services(services);
 });
 // Add services to the container.
+
+builder.Services.AddRateLimiter(options =>
+{
+   options.AddFixedWindowLimiter("fixed", fixedOptions =>
+    {
+        fixedOptions.PermitLimit = 5; // ⁄œœ «·ÿ·»«  «·„”„ÊÕ »Â« ›Ì ﬂ· ‰«›–…
+        fixedOptions.Window = TimeSpan.FromMinutes(1); // „œ… «·‰«›–…
+        fixedOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst; 
+        fixedOptions.QueueLimit = 50; // «·Õœ «·√ﬁ’Ï ··ÿ·»«  ›Ì «·«‰ Ÿ«—
+        fixedOptions.AutoReplenishment = true; 
+    });
+});
 
 builder.Services.AddHybridCache();
 
@@ -60,6 +75,9 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
     options.User.RequireUniqueEmail = true;
     options.SignIn.RequireConfirmedEmail = true;
+    options.Lockout.AllowedForNewUsers= true;
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+    options.Lockout.MaxFailedAccessAttempts = 5;
 
 })
     .AddEntityFrameworkStores<ApplicationDbContext>()

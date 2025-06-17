@@ -1,4 +1,4 @@
-﻿namespace TestAuthentication.DTOS.General;
+﻿namespace UsersManagement.DTOS.General;
 
 public record Error(string Code,string Description,int ?StatusCode)
 {

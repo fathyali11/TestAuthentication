@@ -1,4 +1,4 @@
-﻿namespace TestAuthentication.Mappings;
+﻿namespace UsersManagement.Mappings;
 public class UserMapping
 {
     public static void ConfigMapping()

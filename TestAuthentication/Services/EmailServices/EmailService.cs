@@ -1,4 +1,4 @@
-﻿namespace TestAuthentication.Services.EmailServices;
+﻿namespace UsersManagement.Services.EmailServices;
 
 public class EmailService(IOptions<EmailSettings> options) : IEmailService
 {

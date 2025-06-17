@@ -1,4 +1,4 @@
-﻿namespace TestAuthentication.DTOS.Responses;
+﻿namespace UsersManagement.DTOS.Responses;
 
 public class UserData
 {

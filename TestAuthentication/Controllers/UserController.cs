@@ -1,4 +1,4 @@
-﻿namespace TestAuthentication.Controllers;
+﻿namespace UsersManagement.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]

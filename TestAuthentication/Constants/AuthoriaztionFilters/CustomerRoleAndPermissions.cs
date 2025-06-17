@@ -1,4 +1,4 @@
-﻿namespace TestAuthentication.Constants.AuthoriaztionFilters;
+﻿namespace UsersManagement.Constants.AuthoriaztionFilters;
 
 public static class CustomerRoleAndPermissions
 {

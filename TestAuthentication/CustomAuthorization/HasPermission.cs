@@ -1,4 +1,4 @@
-﻿namespace TestAuthentication.CustomAuthorization;
+﻿namespace UsersManagement.CustomAuthorization;
 public class HasPermission(string permission) : AuthorizeAttribute, IAuthorizationFilter
 {
     private readonly string _permission = permission;

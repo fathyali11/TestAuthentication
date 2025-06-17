@@ -1,4 +1,4 @@
-﻿namespace TestAuthentication.DataSeeders;
+﻿namespace UsersManagement.DataSeeders;
 public class DataSeederHostedService(IServiceProvider _serviceProvider) :IHostedService
 {
 

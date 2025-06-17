@@ -1,4 +1,4 @@
-﻿namespace TestAuthentication.Services.AuthService;
+﻿namespace UsersManagement.Services.AuthService;
 public class AuthServices(
     IOptions<JwtConfig> options,
     IEmailService _emailSender,
@@ -75,6 +75,11 @@ public class AuthServices(
             _logger.LogWarning("User not found with username: {Username}", request.Username);
             return UserError.UserNotFound;
         }
+        if(await _userManager.IsLockedOutAsync(user))
+        {
+            _logger.LogWarning("User is locked out: {Username}", request.Username);
+            return UserError.IsLocked;
+        }
 
         if (!user.EmailConfirmed)
         {
@@ -92,11 +97,12 @@ public class AuthServices(
         if (!isPasswordValid)
         {
             _logger.LogWarning("Invalid password for user: {Username}", request.Username);
+            await _userManager.AccessFailedAsync(user);
             return UserError.InvalidPassword;
         }
 
         _logger.LogInformation("Login successful for user: {Username}", request.Username);
-        
+        await _userManager.ResetAccessFailedCountAsync(user);
         return await GenerateResponse(user,cancellationToken);
     }
 

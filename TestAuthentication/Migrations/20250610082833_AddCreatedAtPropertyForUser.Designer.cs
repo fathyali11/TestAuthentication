@@ -5,11 +5,11 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using TestAuthentication.Data;
+using UsersManagement.Data;
 
 #nullable disable
 
-namespace TestAuthentication.Migrations
+namespace UsersManagement.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20250610082833_AddCreatedAtPropertyForUser")]
@@ -158,7 +158,7 @@ namespace TestAuthentication.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("TestAuthentication.Models.ApplicationUser", b =>
+            modelBuilder.Entity("UsersManagement.Models.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
@@ -248,7 +248,7 @@ namespace TestAuthentication.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
-                    b.HasOne("TestAuthentication.Models.ApplicationUser", null)
+                    b.HasOne("UsersManagement.Models.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -257,7 +257,7 @@ namespace TestAuthentication.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
-                    b.HasOne("TestAuthentication.Models.ApplicationUser", null)
+                    b.HasOne("UsersManagement.Models.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -272,7 +272,7 @@ namespace TestAuthentication.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("TestAuthentication.Models.ApplicationUser", null)
+                    b.HasOne("UsersManagement.Models.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -281,7 +281,7 @@ namespace TestAuthentication.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
                 {
-                    b.HasOne("TestAuthentication.Models.ApplicationUser", null)
+                    b.HasOne("UsersManagement.Models.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)

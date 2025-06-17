@@ -1,4 +1,6 @@
-﻿namespace TestAuthentication.Controllers;
+﻿using Microsoft.AspNetCore.RateLimiting;
+
+namespace UsersManagement.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 public class AuthController(IAuthServices _authServices) : ControllerBase
@@ -14,6 +16,7 @@ public class AuthController(IAuthServices _authServices) : ControllerBase
         return Ok(result.AsT2);
     }
     [HttpPost("login")]
+    [EnableRateLimiting("fixed")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken = default)
     {
         var result = await _authServices.LoginAsync(request, cancellationToken);

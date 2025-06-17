@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace TestAuthentication.Migrations
+namespace UsersManagement.Migrations
 {
     /// <inheritdoc />
     public partial class addIdentityTables : Migration

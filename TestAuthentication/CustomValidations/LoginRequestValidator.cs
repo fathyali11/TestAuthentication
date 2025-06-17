@@ -1,4 +1,4 @@
-﻿namespace TestAuthentication.CustomValidations;
+﻿namespace UsersManagement.CustomValidations;
 public class LoginRequestValidator: AbstractValidator<LoginRequest>
 {
     public LoginRequestValidator()

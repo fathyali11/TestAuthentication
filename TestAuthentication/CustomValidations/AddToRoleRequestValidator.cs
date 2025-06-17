@@ -1,4 +1,4 @@
-﻿namespace TestAuthentication.CustomValidations;
+﻿namespace UsersManagement.CustomValidations;
 public class AddToRoleRequestValidator : AbstractValidator<AddToRoleRequest>
 {
     public AddToRoleRequestValidator()

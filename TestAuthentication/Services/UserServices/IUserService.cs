@@ -1,4 +1,4 @@
-﻿namespace TestAuthentication.Services.UserServices;
+﻿namespace UsersManagement.Services.UserServices;
 public interface IUserService
 {
     Task<OneOf<List<ValidationError>, bool, Error>> ChangePasswordAsync(string userId, ChangePasswordRequest request, CancellationToken cancellationToken = default);
