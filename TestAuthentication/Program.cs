@@ -15,12 +15,19 @@ builder.Services.AddRateLimiter(options =>
 {
    options.AddFixedWindowLimiter("fixed", fixedOptions =>
     {
-        fixedOptions.PermitLimit = 5; // ÚÏÏ ÇáØáÈÇÊ ÇáãÓãæÍ ÈåÇ Ýí ßá äÇÝÐÉ
+        fixedOptions.PermitLimit = 4; // ÚÏÏ ÇáØáÈÇÊ ÇáãÓãæÍ ÈåÇ Ýí ßá äÇÝÐÉ
         fixedOptions.Window = TimeSpan.FromMinutes(1); // ãÏÉ ÇáäÇÝÐÉ
         fixedOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst; 
-        fixedOptions.QueueLimit = 50; // ÇáÍÏ ÇáÃÞÕì ááØáÈÇÊ Ýí ÇáÇäÊÙÇÑ
+        fixedOptions.QueueLimit = 0; // ÇáÍÏ ÇáÃÞÕì ááØáÈÇÊ Ýí ÇáÇäÊÙÇÑ
         fixedOptions.AutoReplenishment = true; 
     });
+
+    options.OnRejected = async (context,token) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsync("Too Many Requests");
+    };
 });
 
 builder.Services.AddHybridCache();
@@ -168,7 +175,8 @@ if (app.Environment.IsDevelopment())
 }
 app.UseSerilogRequestLogging();
 app.UseHttpsRedirection();
-
+app.MapStaticAssets();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseHangfireDashboard("/hangfire");
