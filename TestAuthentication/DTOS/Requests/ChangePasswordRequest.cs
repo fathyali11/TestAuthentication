@@ -1,4 +1,4 @@
-﻿namespace TestAuthentication.DTOS.Requests;
+﻿namespace UsersManagement.DTOS.Requests;
 
 public record ChangePasswordRequest(
     string OldPassword,

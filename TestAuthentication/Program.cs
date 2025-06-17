@@ -1,26 +1,5 @@
-using FluentValidation;
-using Hangfire;
-using Mapster;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
-using Serilog;
-using System.Text;
-using TestAuthentication.Constants;
-using TestAuthentication.CustomValidations;
-using TestAuthentication.Data;
-using TestAuthentication.DTOS.Requests;
-using TestAuthentication.Mappings;
-using TestAuthentication.Models;
-using TestAuthentication.Services.AuthService;
-using TestAuthentication.Services.BlobStorage;
-using TestAuthentication.Services.EmailServices;
-using TestAuthentication.Services.General;
-using TestAuthentication.Services.UserServices;
-
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,6 +10,25 @@ builder.Host.UseSerilog((context, services, configuration) =>
         .ReadFrom.Services(services);
 });
 // Add services to the container.
+
+builder.Services.AddRateLimiter(options =>
+{
+   options.AddFixedWindowLimiter("fixed", fixedOptions =>
+    {
+        fixedOptions.PermitLimit = 4; // ÚÏÏ ÇáØáÈÇÊ ÇáãÓãæÍ ÈåÇ Ýí ßá äÇÝÐÉ
+        fixedOptions.Window = TimeSpan.FromMinutes(1); // ãÏÉ ÇáäÇÝÐÉ
+        fixedOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst; 
+        fixedOptions.QueueLimit = 0; // ÇáÍÏ ÇáÃÞÕì ááØáÈÇÊ Ýí ÇáÇäÊÙÇÑ
+        fixedOptions.AutoReplenishment = true; 
+    });
+
+    options.OnRejected = async (context,token) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsync("Too Many Requests");
+    };
+});
 
 builder.Services.AddHybridCache();
 
@@ -84,6 +82,9 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
     options.User.RequireUniqueEmail = true;
     options.SignIn.RequireConfirmedEmail = true;
+    options.Lockout.AllowedForNewUsers= true;
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+    options.Lockout.MaxFailedAccessAttempts = 5;
 
 })
     .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -174,7 +175,8 @@ if (app.Environment.IsDevelopment())
 }
 app.UseSerilogRequestLogging();
 app.UseHttpsRedirection();
-
+app.MapStaticAssets();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseHangfireDashboard("/hangfire");

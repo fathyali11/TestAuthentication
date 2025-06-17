@@ -1,6 +1,6 @@
 ﻿
 
-namespace TestAuthentication.Services.UserServices;
+namespace UsersManagement.Services.UserServices;
 
 public class UserService(IValidator<ChangePasswordRequest> _changePasswordRequestValidator,
     IValidator<ChangeStatusOfUserAccountRequest> _changeStatusOfUserAccountRequestValidator,

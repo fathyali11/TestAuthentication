@@ -1,4 +1,4 @@
-﻿namespace TestAuthentication.CustomValidations;
+﻿namespace UsersManagement.CustomValidations;
 public class UpdateProfileRequestValidator:AbstractValidator<UpdateProfileRequest>
 {
     public UpdateProfileRequestValidator()

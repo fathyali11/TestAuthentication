@@ -1,4 +1,4 @@
-﻿namespace TestAuthentication.CustomValidations;
+﻿namespace UsersManagement.CustomValidations;
 public class RegisterRequestValidator:AbstractValidator<RegisterRequest>
 {
     public RegisterRequestValidator()

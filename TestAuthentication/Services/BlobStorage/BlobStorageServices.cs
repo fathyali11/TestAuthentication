@@ -1,4 +1,4 @@
-﻿namespace TestAuthentication.Services.BlobStorage;
+﻿namespace UsersManagement.Services.BlobStorage;
 
 public class BlobStorageServices(IConfiguration _configuration,
     ILogger<BlobStorageServices> _logger)

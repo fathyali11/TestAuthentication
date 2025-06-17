@@ -1,4 +1,4 @@
-namespace TestAuthentication.Models
+namespace UsersManagement.Models
 {
     public class WeatherForecast
     {

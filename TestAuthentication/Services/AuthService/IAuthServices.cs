@@ -1,4 +1,4 @@
-﻿namespace TestAuthentication.Services.AuthService;
+﻿namespace UsersManagement.Services.AuthService;
 public interface IAuthServices
 {
     Task<OneOf<List<ValidationError>,Error,bool>> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default);

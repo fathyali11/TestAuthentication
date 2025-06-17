@@ -5,11 +5,11 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using TestAuthentication.Data;
+using UsersManagement.Data;
 
 #nullable disable
 
-namespace TestAuthentication.Migrations
+namespace UsersManagement.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20250510214643_addIdentityTables")]

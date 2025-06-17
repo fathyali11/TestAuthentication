@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace TestAuthentication.Migrations
+namespace UsersManagement.Migrations
 {
     /// <inheritdoc />
     public partial class ExtendIdentityUserByUsingApplicationUser : Migration

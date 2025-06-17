@@ -1,4 +1,4 @@
-﻿namespace TestAuthentication.Constants.Errors;
+﻿namespace UsersManagement.Constants.Errors;
 
 public static class UserError
 {
@@ -11,5 +11,6 @@ public static class UserError
     public static readonly Error ServerError = new("ServerError", "Internal server error", StatusCodes.Status500InternalServerError);
     public static readonly Error NotConfirmed = new("NotConfirmed", "Email not confirmed", StatusCodes.Status401Unauthorized);
     public static readonly Error NotActive = new("NotActive", "User is not enable", StatusCodes.Status401Unauthorized);
+    public static readonly Error IsLocked = new("Locked", "User is locked", StatusCodes.Status401Unauthorized);
 
 }

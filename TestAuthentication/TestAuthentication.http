@@ -1,6 +1,6 @@
-@TestAuthentication_HostAddress = http://localhost:5019
+@UsersManagement_HostAddress = http://localhost:5019
 
-GET {{TestAuthentication_HostAddress}}/weatherforecast/
+GET {{UsersManagement_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
