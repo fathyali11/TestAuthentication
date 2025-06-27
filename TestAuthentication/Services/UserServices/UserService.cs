@@ -1,4 +1,4 @@
-﻿
+﻿using UsersManagement.Helpers;
 
 namespace UsersManagement.Services.UserServices;
 
@@ -142,7 +142,7 @@ public class UserService(IValidator<ChangePasswordRequest> _changePasswordReques
         _logger.LogInformation("User account with Email {Email} disabled successfully", request.Email);
         return true;
     }
-    public async Task<IEnumerable<AdminUsersProfileResponse>> GetAllUsersAsync(string userId,CancellationToken cancellationToken = default)
+    public async Task<PaginatedList<AdminUsersProfileResponse>> GetAllUsersAsync(string userId,PagedRequest request,CancellationToken cancellationToken = default)
     {
         var cachUsersKey=$"AllUsers";
 
@@ -151,31 +151,53 @@ public class UserService(IValidator<ChangePasswordRequest> _changePasswordReques
             return await GetAllCachedUsers(userId, cancellationToken);
         }, cancellationToken: cancellationToken);
 
-            var response=await Task.WhenAll(cachedUsers.Select(async user=>
-            {
-                var cacheKey = $"UserProfile_{user.ProfilePictureUrl}";
+        var response=await Task.WhenAll(cachedUsers.Select(async user=>
+        {
+            var cacheKey = $"UserProfile_{user.ProfilePictureUrl}";
 
-                var pictureUrl = await _hybridCache.GetOrCreateAsync(cacheKey,
-                    async _ =>
-                    {
-                       var url = await _blobStorageServices.GetFileUrlAsync(user.ProfilePictureUrl);
-                        return url;
-                    },cancellationToken:cancellationToken);
-
-
-                return new AdminUsersProfileResponse
+            var pictureUrl = await _hybridCache.GetOrCreateAsync(cacheKey,
+                async _ =>
                 {
-                    UserName = user.UserName,
-                    Email = user.Email,
-                    ProfilePictureUrl = pictureUrl,
-                    IsActive = user.IsActive,
-                    Address = user.Address,
-                    CreatedAt = user.CreatedAt,
-                    Role = user.Role
-                };
-                
-            }));
-        return response;
+                   var url = await _blobStorageServices.GetFileUrlAsync(user.ProfilePictureUrl);
+                    return url;
+                },cancellationToken:cancellationToken);
+
+
+            return new AdminUsersProfileResponse
+            {
+                UserName = user.UserName,
+                Email = user.Email,
+                ProfilePictureUrl = pictureUrl,
+                IsActive = user.IsActive,
+                Address = user.Address,
+                CreatedAt = user.CreatedAt,
+                Role = user.Role
+            };
+            
+        }));
+
+        if(!string.IsNullOrEmpty(request.SearchTerm))
+        {
+            response = response.Where(u => u.UserName.Contains(request.SearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                                            u.Email.Contains(request.SearchTerm, StringComparison.OrdinalIgnoreCase)).ToArray();
+        }
+
+        if (!string.IsNullOrEmpty(request.SortBy))
+        {
+            Func<AdminUsersProfileResponse, object> keySelector = request.SortBy.ToLower() switch
+            {
+                var s when s == PaginationConstants.CreatedAtSort.ToLower() => u => u.CreatedAt,
+                var s when s == PaginationConstants.UserNameSort.ToLower() => u => u.UserName,
+                var s when s == PaginationConstants.EmailSort.ToLower() => u => u.Email,
+                _ => u => u.CreatedAt 
+            };
+
+            response = request.SortDirection == PaginationConstants.SortDirectionAsc
+                ? response.OrderBy(keySelector).ToArray()
+                : response.OrderByDescending(keySelector).ToArray();
+        }
+
+        return PaginatedList<AdminUsersProfileResponse>.Create(response,request.PageIndex,request.PageSize);
     }
 
     public async Task<OneOf<List<ValidationError>, bool, Error>> AddToRoleAsync(AddToRoleRequest request,CancellationToken cancellationToken=default)
