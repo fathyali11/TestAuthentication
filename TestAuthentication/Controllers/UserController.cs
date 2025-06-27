@@ -69,10 +69,10 @@ public class UserController(IUserService _userService) : ControllerBase
     }
     [HasPermission(AdminRoleAndPermissions.CanViewUser)]
     [HttpGet("all-users")]
-    public async Task<ActionResult> GetAllUsers(CancellationToken cancellationToken=default)
+    public async Task<ActionResult> GetAllUsers([FromQuery]PagedRequest request,CancellationToken cancellationToken=default)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return Ok(await _userService.GetAllUsersAsync(userId!, cancellationToken));
+        return Ok(await _userService.GetAllUsersAsync(userId!,request, cancellationToken));
     }
 
     [HasPermission(AdminRoleAndPermissions.CanEditUser)]
