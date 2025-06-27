@@ -43,6 +43,9 @@ global using Serilog;
 global using UsersManagement.CustomValidations;
 global using UsersManagement.Mappings;
 
+global using Microsoft.AspNetCore.RateLimiting;
+global using System.Threading.RateLimiting;
+
 
 
 
