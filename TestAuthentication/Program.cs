@@ -12,6 +12,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+app.UseCors("AllowAllOrigins");
 app.UseSerilogRequestLogging();
 app.UseHttpsRedirection();
 app.MapStaticAssets();
