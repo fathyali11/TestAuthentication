@@ -5,6 +5,15 @@ public class DataSeederHostedService(IServiceProvider _serviceProvider) :IHosted
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         using var scope = _serviceProvider.CreateScope();
+
+        // Ensure the database is created and migrations are applied
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        if(dbContext.Database.GetPendingMigrations().Any())
+            await dbContext.Database.MigrateAsync(cancellationToken);
+
+
+        if(dbContext.Roles.Any() || dbContext.Users.Any())
+            return; // If roles or users already exist, skip seeding
         var _roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         // Create default admin user and it's permissions
         var adminPermissions = AdminRoleAndPermissions.GetAllPermissions();
