@@ -11,6 +11,18 @@ public static class DI
                 .ReadFrom.Services(services);
         });
     }
+    public static void AddCorsPolicy(this WebApplicationBuilder builder)
+    {
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("AllowAllOrigins", policy =>
+            {
+                policy.AllowAnyOrigin()
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+            });
+        });
+    }
     public static void AddDataSeederHostedService(this WebApplicationBuilder builder)
     {
         builder.Services.AddHostedService<DataSeeders.DataSeederHostedService>();
@@ -206,5 +218,6 @@ public static class DI
         builder.AddEmailOptions();
         builder.AddAppScopedServices();
         builder.AddHangfireServices();
+        builder.AddCorsPolicy();
     }
 }
