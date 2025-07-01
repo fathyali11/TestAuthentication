@@ -11,6 +11,10 @@ public static class DI
                 .ReadFrom.Services(services);
         });
     }
+    public static void AddDataSeederHostedService(this WebApplicationBuilder builder)
+    {
+        builder.Services.AddHostedService<DataSeeders.DataSeederHostedService>();
+    }
 
     public static void AddRateLimiterService(this WebApplicationBuilder builder)
     {
@@ -189,6 +193,7 @@ public static class DI
 
     public static void AddProjectServices(this WebApplicationBuilder builder)
     {
+        builder.AddDataSeederHostedService();
         builder.AddSerilogLogging();
         builder.AddRateLimiterService();
         builder.AddHybridCacheService();
